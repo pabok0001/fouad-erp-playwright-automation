@@ -1,12 +1,10 @@
-
-# Playwright
 node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
 .env
-/api-tests/reports/
-/performance/results/
-jmeter.log
+.auth/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+perf/results/
+.playwright-mcp/
+scripts/audit/output/

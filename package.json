@@ -1,33 +1,32 @@
 {
-  "name": "fouad-erp-playwright-automation",
+  "name": "fouad-al-khatib-automation",
   "version": "1.0.0",
-  "description": "Fouad ERP test automation: Playwright UI, Postman/Newman API, JMeter performance",
+  "description": "",
+  "main": "index.js",
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "test:chromium": "playwright test --project=chromium",
     "report": "playwright show-report",
-    "codegen": "playwright codegen",
-    "mcp": "playwright-mcp",
-    "api:test": "newman run api-tests/sample.postman_collection.json -r cli,htmlextra --reporter-htmlextra-export api-tests/reports/report.html",
-    "preperf:test": "node -e \"require('fs').mkdirSync('performance/results',{recursive:true})\"",
-    "perf:test": "jmeter -n -t performance/load-test.jmx -l performance/results/results.jtl -e -o performance/results/report -f",
-    "perf:gui": "jmeter -t performance/load-test.jmx",
-    "typecheck": "tsc"
+    "codegen": "playwright codegen --ignore-https-errors https://202.4.101.118:5555",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p perf",
+    "test:headless": "cross-env HEADLESS=true playwright test",
+    "test:e2e": "playwright test --project=chromium",
+    "test:api": "playwright test --project=api",
+    "perf:smoke": "node perf/run.cjs perf/smoke.ts",
+    "perf:load": "node perf/run.cjs perf/load.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "@playwright/mcp": "^0.0.82",
     "@playwright/test": "^1.63.0",
+    "@types/k6": "^2.2.1",
     "@types/node": "^26.6.2",
-    "dotenv": "^18.0.4",
-    "newman": "^6.2.2",
-    "newman-reporter-htmlextra": "^1.23.1",
+    "cross-env": "^10.1.0",
+    "dotenv": "^18.0.3",
     "typescript": "^7.0.2"
   }
 }
