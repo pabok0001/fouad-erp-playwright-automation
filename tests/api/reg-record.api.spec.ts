@@ -8,7 +8,7 @@ test.describe('API · RegRecord', () => {
 
   test('GetByRegDates returns records for the last 7 days', async ({ api }) => {
     const res = await api.post(apiPath('RegRecord/GetByRegDates'), { data: range });
-    expect(res).toBeOK();
+    await expect(res).toBeOK();
     const body = await res.json();
     expect(body.succeeded).toBe(true);
     expect(Array.isArray(body.data)).toBe(true);
@@ -16,11 +16,12 @@ test.describe('API · RegRecord', () => {
 
   test('RegNo lookup returns the matching patient', async ({ api }) => {
     const list = await (await api.post(apiPath('RegRecord/GetByRegDates'), { data: range })).json();
+    // eslint-disable-next-line playwright/no-skipped-test -- runtime skip when there's no recent data
     test.skip(!list.data?.length, 'no patients registered in the last 7 days');
 
     const uhid = list.data[0].uhid;
     const res = await api.get(apiPath(`RegRecord/RegNo/${uhid}`));
-    expect(res).toBeOK();
+    await expect(res).toBeOK();
     const body = await res.json();
     expect(body.succeeded).toBe(true);
     expect(body.data.uhid).toBe(uhid);

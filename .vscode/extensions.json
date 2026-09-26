@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "ms-playwright.playwright",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+    "mikestead.dotenv",
+    "yzhang.markdown-all-in-one",
+    "rangav.vscode-thunder-client"
+  ]
+}

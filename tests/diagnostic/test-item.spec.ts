@@ -1,6 +1,8 @@
+/* eslint-disable playwright/no-conditional-in-test, playwright/no-conditional-expect --
+   Re-runs branch on what already exists in the master so real records aren't duplicated. */
 import { APIRequestContext } from '@playwright/test';
 import { test, expect } from '../../fixtures/api';
-import { TestItemPage } from '../../pages/TestItemPage';
+import { TestItemPage } from '../../pages/diagnostic/TestItemPage';
 import { apiPath } from '../../utils/apiAuth';
 import { loadTestItemData, TEST_ITEM_DATA_FILE } from '../../utils/testItemData';
 
@@ -20,7 +22,7 @@ interface ApiTestItem {
 
 async function allTestItems(api: APIRequestContext): Promise<ApiTestItem[]> {
   const res = await api.get(apiPath('TestItem/GetAllTestItems'));
-  expect(res, 'GetAllTestItems').toBeOK();
+  await expect(res, 'GetAllTestItems').toBeOK();
   return (await res.json()).data ?? [];
 }
 
@@ -53,7 +55,10 @@ test.describe(`Diagnostic · Test Item (data: ${TEST_ITEM_DATA_FILE})`, () => {
           await ti.openAddNew();
           await ti.fill(inv);
           const result = await ti.submit();
-          expect(result.saved, `save "${inv.name}": ${result.messages.concat(result.validationErrors).join(' | ')}`).toBe(true);
+          expect(
+            result.saved,
+            `save "${inv.name}": ${result.messages.concat(result.validationErrors).join(' | ')}`,
+          ).toBe(true);
           note('created', `${inv.code} ${inv.name}`);
         } else {
           note('exists', `${inv.code} already in master — verifying only`);
@@ -93,11 +98,12 @@ test.describe(`Diagnostic · Test Item (data: ${TEST_ITEM_DATA_FILE})`, () => {
         await ti.fill(c);
         const result = await ti.submit();
         const after = await matching(api, c.code, c.name);
-        const feedback = result.messages.concat(result.validationErrors).join(' | ') || '(no message)';
+        const feedback =
+          result.messages.concat(result.validationErrors).join(' | ') || '(no message)';
 
         if (c.outcome === 'reject') {
           expect(result.saved, `should be rejected, app said: ${feedback}`).toBe(false);
-          expect(after.length, 'no new record in API').toBe(before.length);
+          expect(after, 'no new record in API').toHaveLength(before.length);
           note('rejected', feedback);
         } else if (c.outcome === 'accept') {
           expect(result.saved, `should be accepted, app said: ${feedback}`).toBe(true);
@@ -119,14 +125,20 @@ test.describe(`Diagnostic · Test Item (data: ${TEST_ITEM_DATA_FILE})`, () => {
         await ti.searchFor(term);
 
         const rows = (await ti.rows.allInnerTexts()).map((r) => r.replace(/\s+/g, ' ').trim());
-        note('results', `${await ti.pager.innerText()}`);
+        // eslint-disable-next-line playwright/prefer-locator -- `pager` is already a Locator
+        note('results', await ti.pager.innerText());
         expect(rows.length, `rows for "${term}"`).toBeGreaterThan(0);
 
         const needle = term.toLowerCase();
         for (const row of rows) {
           // Rates render with thousands separators ("1,200"), so compare without commas too.
           const hay = row.toLowerCase();
-          expect.soft(hay.includes(needle) || hay.replace(/,/g, '').includes(needle), `row "${row.slice(0, 60)}" contains "${term}"`).toBe(true);
+          expect
+            .soft(
+              hay.includes(needle) || hay.replace(/,/g, '').includes(needle),
+              `row "${row.slice(0, 60)}" contains "${term}"`,
+            )
+            .toBe(true);
         }
       });
     }

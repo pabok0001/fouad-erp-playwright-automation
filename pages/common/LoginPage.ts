@@ -29,15 +29,22 @@ export class LoginPage {
     await expect(this.username).toBeVisible();
   }
 
-  async login(user: string, pass: string) {
+  /**
+   * `click()` also waits for the navigation it triggers, and the post-login
+   * redirect can take well over the default 15s action timeout when the
+   * server is busy — hence the configurable timeout.
+   */
+  async login(user: string, pass: string, timeout?: number) {
     await this.username.fill(user);
     await this.password.fill(pass);
-    await this.submit.click();
+    await this.submit.click({ timeout });
   }
 
   /** Full happy-path login that waits until the app leaves the login page. */
-  async loginAndWait(user: string, pass: string) {
-    await this.login(user, pass);
-    await this.page.waitForURL((url) => !url.pathname.includes('/Account/Login'), { timeout: 30_000 });
+  async loginAndWait(user: string, pass: string, timeout = 60_000) {
+    await Promise.all([
+      this.page.waitForURL((url) => !url.pathname.includes('/Account/Login'), { timeout }),
+      this.login(user, pass, timeout),
+    ]);
   }
 }

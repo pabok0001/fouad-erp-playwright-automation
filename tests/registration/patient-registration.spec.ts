@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PatientRegistrationPage } from '../../pages/PatientRegistrationPage';
+import { PatientRegistrationPage } from '../../pages/registration/PatientRegistrationPage';
 import { randomPatient } from '../../utils/testData';
 
 test.describe('Patient registration', () => {

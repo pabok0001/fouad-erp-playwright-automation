@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/LoginPage';
+import { LoginPage } from '../../pages/common/LoginPage';
 
 // These tests exercise the login form itself, so start without a session.
 test.use({ storageState: { cookies: [], origins: [] } });

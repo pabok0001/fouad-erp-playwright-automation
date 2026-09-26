@@ -3,7 +3,10 @@
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.resolve(__dirname, '..', '..');
-require(path.join(ROOT, 'node_modules', 'dotenv')).config({ path: path.join(ROOT, '.env'), quiet: true });
+require(path.join(ROOT, 'node_modules', 'dotenv')).config({
+  path: path.join(ROOT, '.env'),
+  quiet: true,
+});
 const { chromium } = require(path.join(ROOT, 'node_modules', 'playwright-core'));
 
 const BASE = process.env.BASE_URL;
@@ -33,7 +36,11 @@ function logIssue(issue) {
 
 function readJsonl(file) {
   if (!fs.existsSync(file)) return [];
-  return fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  return fs
+    .readFileSync(file, 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l));
 }
 
 async function launch() {
@@ -48,7 +55,9 @@ async function login(browser, user) {
       return await loginOnce(browser, user);
     } catch (e) {
       lastError = e;
-      console.log(`  login attempt ${attempt} for ${user.login} failed: ${e.message.split('\n')[0]}`);
+      console.log(
+        `  login attempt ${attempt} for ${user.login} failed: ${e.message.split('\n')[0]}`,
+      );
       await new Promise((r) => setTimeout(r, 15_000 * attempt));
     }
   }
@@ -56,10 +65,16 @@ async function login(browser, user) {
 }
 
 async function loginOnce(browser, user) {
-  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1700, height: 1000 } });
+  const ctx = await browser.newContext({
+    ignoreHTTPSErrors: true,
+    viewport: { width: 1700, height: 1000 },
+  });
   const page = await ctx.newPage();
   page.setDefaultTimeout(20_000);
-  await page.goto(BASE + '/', { timeout: 60_000 }).catch(async (e) => { await ctx.close(); throw e; });
+  await page.goto(BASE + '/', { timeout: 60_000 }).catch(async (e) => {
+    await ctx.close();
+    throw e;
+  });
   await page.waitForURL(/Account\/Login/, { timeout: 30_000 });
   await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
   await page.fill('input[name="Input.Email"]', user.login);
@@ -78,8 +93,19 @@ async function closePopovers(page) {
   for (let i = 0; i < 3; i++) {
     const overlay = page.locator('.mud-popover-provider .mud-overlay').first();
     if (!(await overlay.isVisible().catch(() => false))) {
-      if (!(await page.locator('.mud-popover-open').first().isVisible().catch(() => false))) return;
-      await page.getByText('AUDIT DETAILS', { exact: true }).first().click({ force: true }).catch(() => {});
+      if (
+        !(await page
+          .locator('.mud-popover-open')
+          .first()
+          .isVisible()
+          .catch(() => false))
+      )
+        return;
+      await page
+        .getByText('AUDIT DETAILS', { exact: true })
+        .first()
+        .click({ force: true })
+        .catch(() => {});
     } else {
       await overlay.click({ position: { x: 5, y: 5 } }).catch(() => {});
     }
@@ -94,20 +120,27 @@ async function openAudit(page) {
   await field.waitFor({ timeout: 30_000 });
   await page.waitForTimeout(1500);
   await field.click();
-  await page.locator('.mud-popover-open p').filter({ hasText: AUDIT.description }).first().waitFor({ timeout: 15_000 });
+  await page
+    .locator('.mud-popover-open p')
+    .filter({ hasText: AUDIT.description })
+    .first()
+    .waitFor({ timeout: 15_000 });
   const option = page
     .locator('.mud-popover-open p')
     .filter({ hasText: AUDIT.outlet })
     .filter({ hasText: AUDIT.description })
     .filter({ hasText: new RegExp(`\\b${AUDIT.month}\\b`) })
     .filter({ hasText: AUDIT.year });
-  if ((await option.count()) !== 1) throw new Error(`Expected exactly 1 matching audit option, found ${await option.count()}`);
+  if ((await option.count()) !== 1)
+    throw new Error(`Expected exactly 1 matching audit option, found ${await option.count()}`);
   await option.click();
   // The audit picker stays open after selection and its overlay blocks the grid — close it.
   await page.waitForTimeout(800);
   await closePopovers(page);
   await page.getByText(/\d+ row\(s\)/).waitFor();
-  await page.waitForFunction(() => /[1-9]\d* row\(s\)/.test(document.body.innerText), null, { timeout: 30_000 });
+  await page.waitForFunction(() => /[1-9]\d* row\(s\)/.test(document.body.innerText), null, {
+    timeout: 30_000,
+  });
   const desc = await page.getByRole('textbox', { name: 'Description' }).inputValue();
   if (desc !== AUDIT.description) throw new Error(`Wrong audit selected: description "${desc}"`);
 }
@@ -117,11 +150,23 @@ async function readRows(page) {
   return page.locator('table tbody tr').evaluateAll((trs) =>
     trs
       .map((tr, i) => {
-        const td = [...tr.querySelectorAll('td')].map((c) => c.innerText.replace(/\s+/g, ' ').trim());
+        const td = [...tr.querySelectorAll('td')].map((c) =>
+          c.innerText.replace(/\s+/g, ' ').trim(),
+        );
         if (td.length < 12) return null;
         return {
-          i, name: td[1], manufacturer: td[2], generic: td[3], batch: td[4], exp: td[5],
-          soft: td[6], phys: td[7], deviation: td[8], status: td[9], user: td[10], entry: td[11],
+          i,
+          name: td[1],
+          manufacturer: td[2],
+          generic: td[3],
+          batch: td[4],
+          exp: td[5],
+          soft: td[6],
+          phys: td[7],
+          deviation: td[8],
+          status: td[9],
+          user: td[10],
+          entry: td[11],
         };
       })
       .filter(Boolean),
@@ -139,8 +184,14 @@ async function maxRowsPerPage(page) {
   const opts = page.locator('.mud-popover-open .mud-list-item');
   await opts.first().waitFor({ timeout: 10_000 });
   const texts = await opts.allInnerTexts();
-  const best = texts.map((t) => t.trim()).filter((t) => /^\d+$/.test(t)).sort((a, b) => Number(b) - Number(a))[0];
-  await opts.filter({ hasText: new RegExp(`^\\s*${best}\\s*$`) }).first().click();
+  const best = texts
+    .map((t) => t.trim())
+    .filter((t) => /^\d+$/.test(t))
+    .sort((a, b) => Number(b) - Number(a))[0];
+  await opts
+    .filter({ hasText: new RegExp(`^\\s*${best}\\s*$`) })
+    .first()
+    .click();
   await page.waitForTimeout(1500);
   return Number(best);
 }
@@ -163,12 +214,34 @@ async function readAllRows(page) {
 const keyOf = (r) => [r.name, r.batch, r.exp, r.soft].join(' | ');
 
 async function screenshot(page, label) {
-  const file = path.join(OUT, 'screens', `${label.replace(/[^a-z0-9-_]+/gi, '_').slice(0, 80)}-${Date.now()}.png`);
+  const file = path.join(
+    OUT,
+    'screens',
+    `${label.replace(/[^a-z0-9-_]+/gi, '_').slice(0, 80)}-${Date.now()}.png`,
+  );
   await page.screenshot({ path: file }).catch(() => {});
   return path.relative(ROOT, file);
 }
 
 module.exports = {
-  ROOT, OUT, AUDIT, USERS, PLAN_FILE, progressFile, issuesFile,
-  now, esc, logIssue, readJsonl, launch, login, openAudit, closePopovers, readRows, readAllRows, rowCount, keyOf, screenshot,
+  ROOT,
+  OUT,
+  AUDIT,
+  USERS,
+  PLAN_FILE,
+  progressFile,
+  issuesFile,
+  now,
+  esc,
+  logIssue,
+  readJsonl,
+  launch,
+  login,
+  openAudit,
+  closePopovers,
+  readRows,
+  readAllRows,
+  rowCount,
+  keyOf,
+  screenshot,
 };

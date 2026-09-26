@@ -2,7 +2,7 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest", "--ignore-https-errors"]
+      "args": ["-y", "@playwright/mcp@0.0.82", "--ignore-https-errors"]
     }
   }
 }

@@ -5,7 +5,12 @@ import path from 'path';
 export function parseTables(markdown: string): Record<string, string>[][] {
   const tables: Record<string, string>[][] = [];
   const lines = markdown.split(/\r?\n/);
-  const cells = (line: string) => line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+  const cells = (line: string) =>
+    line
+      .trim()
+      .replace(/^\||\|$/g, '')
+      .split('|')
+      .map((c) => c.trim());
 
   for (let i = 0; i < lines.length - 1; i++) {
     const isHeader = lines[i].trim().startsWith('|') && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1]);
@@ -26,7 +31,9 @@ export function parseTables(markdown: string): Record<string, string>[][] {
 /** Lines under a Setext heading ("Title\n-----") until the next heading or end of file. */
 export function parseList(markdown: string, heading: string): string[] {
   const lines = markdown.split(/\r?\n/);
-  const start = lines.findIndex((l, i) => l.trim() === heading && /^-{3,}\s*$/.test(lines[i + 1] ?? ''));
+  const start = lines.findIndex(
+    (l, i) => l.trim() === heading && /^-{3,}\s*$/.test(lines[i + 1] ?? ''),
+  );
   if (start < 0) return [];
   const out: string[] = [];
   for (let i = start + 2; i < lines.length; i++) {

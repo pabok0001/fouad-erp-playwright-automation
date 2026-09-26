@@ -8,12 +8,17 @@ Playwright + TypeScript E2E automation for the Fouad Al-Khateeb Hospital HMS
 - `npm test` — full run (auth setup project logs in, then chromium specs)
 - `npm run test:headed` / `test:ui` / `test:debug`
 - `npm run typecheck` — `tsc --noEmit`
+- `npm run lint` / `lint:fix` — ESLint (flat config + `eslint-plugin-playwright`); `npm run format` — Prettier.
+  `typescript` is aliased to `@typescript/typescript6` (typescript-eslint needs the TS 6 API);
+  `tsc` itself is TS 7 via `@typescript/native`. `Markdown/` and `api/swagger.json` are Prettier-ignored.
 - `npm run codegen` — record against the live site (ignores TLS errors)
 - Single spec: `npx playwright test tests/smoke/dashboard.spec.ts`
 
 ## Conventions
 
-- Page Objects live in `pages/`, one class per screen; specs in `tests/<area>/`.
+- Module-wise layout: Page Objects in `pages/<module>/` (login/dashboard in `pages/common/`),
+  specs in `tests/<module>/`, analysis in `docs/modules/<module>.md` (see its `_TEMPLATE.md`).
+  One class per screen.
 - Prefer `getByRole` / `getByText` locators; module tiles need case-insensitive
   regex names (see `DashboardPage.module`).
 - Credentials come only from `.env` via `utils/env.ts`; never hard-code them.

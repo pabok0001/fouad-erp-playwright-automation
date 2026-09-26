@@ -1,11 +1,25 @@
 import { test, expect } from '@playwright/test';
-import { DashboardPage } from '../../pages/DashboardPage';
+import { DashboardPage } from '../../pages/common/DashboardPage';
 
 const MODULES = [
-  'UHID WINDOW', 'MANAGEMENT DASHBOARD FOR ADMINISTRATION', 'REGISTRATION',
-  'HOSPITAL', 'EMR', 'DIET & NUTRITION', 'OPD', 'RX', 'PHARMACY', 'DIAGNOSTIC',
-  'RE-AGENT MANAGEMENT', 'HR', 'PAYROLL', 'ACCOUNT', 'SUPPLY CHAIN',
-  'MARKETING', 'MIS', 'ADMINISTRATIVE',
+  'UHID WINDOW',
+  'MANAGEMENT DASHBOARD FOR ADMINISTRATION',
+  'REGISTRATION',
+  'HOSPITAL',
+  'EMR',
+  'DIET & NUTRITION',
+  'OPD',
+  'RX',
+  'PHARMACY',
+  'DIAGNOSTIC',
+  'RE-AGENT MANAGEMENT',
+  'HR',
+  'PAYROLL',
+  'ACCOUNT',
+  'SUPPLY CHAIN',
+  'MARKETING',
+  'MIS',
+  'ADMINISTRATIVE',
 ];
 
 test.describe('Dashboard smoke', () => {

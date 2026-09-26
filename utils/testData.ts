@@ -1,10 +1,33 @@
-import type { PatientData } from '../pages/PatientRegistrationPage';
+import type { PatientData } from '../pages/registration/PatientRegistrationPage';
 
 const pick = <T>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
-const digits = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
+const digits = (n: number) =>
+  Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
 
-const FIRST = ['Rahim', 'Karim', 'Fatema', 'Ayesha', 'Jamal', 'Nusrat', 'Imran', 'Sadia', 'Tanvir', 'Mitu'];
-const LAST = ['Uddin', 'Ahmed', 'Hossain', 'Begum', 'Khan', 'Islam', 'Chowdhury', 'Akter', 'Rahman', 'Sultana'];
+const FIRST = [
+  'Rahim',
+  'Karim',
+  'Fatema',
+  'Ayesha',
+  'Jamal',
+  'Nusrat',
+  'Imran',
+  'Sadia',
+  'Tanvir',
+  'Mitu',
+];
+const LAST = [
+  'Uddin',
+  'Ahmed',
+  'Hossain',
+  'Begum',
+  'Khan',
+  'Islam',
+  'Chowdhury',
+  'Akter',
+  'Rahman',
+  'Sultana',
+];
 
 /** Random but valid patient data for the Create Patient form. */
 export function randomPatient(): PatientData {
@@ -19,7 +42,11 @@ export function randomPatient(): PatientData {
     givenName,
     surname,
     gender,
-    dob: { year: 1960 + Math.floor(Math.random() * 45), month: 1 + Math.floor(Math.random() * 12), day: 1 + Math.floor(Math.random() * 28) },
+    dob: {
+      year: 1960 + Math.floor(Math.random() * 45),
+      month: 1 + Math.floor(Math.random() * 12),
+      day: 1 + Math.floor(Math.random() * 28),
+    },
     maritalStatus: pick(['Single', 'Married']),
     religion: pick(['Islam', 'Hindu', 'Christian']),
     bloodGroup: pick(['A+', 'B+', 'O+', 'AB+', 'O-']),
@@ -34,7 +61,7 @@ export function randomPatient(): PatientData {
     roadNo: String(1 + Math.floor(Math.random() * 30)),
     area: pick(['Kolatoli', 'Jhilongja', 'Bahar Chara', 'Tekpara']),
     village: pick(['Purbo Para', 'Uttar Para', 'Dokkhin Para']),
-    district: "Cox",
+    district: 'Cox',
     thana: 'Cox',
     po: '4700',
     address: `Automation test address ${stamp}, Cox's Bazar`,

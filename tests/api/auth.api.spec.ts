@@ -24,7 +24,7 @@ test.describe('API · identity', () => {
 
   test('swagger spec is published', async ({ request }) => {
     const res = await request.get('/swagger/v1/swagger.json');
-    expect(res).toBeOK();
+    await expect(res).toBeOK();
     const spec = await res.json();
     expect(spec.info.title).toBe('HealthCare ERP');
     expect(Object.keys(spec.paths).length).toBeGreaterThan(100);

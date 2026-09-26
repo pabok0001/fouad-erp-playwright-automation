@@ -6,7 +6,10 @@ const fs = require('fs');
 const path = require('path');
 
 const [script, ...extra] = process.argv.slice(2);
-if (!script) { console.error('usage: node perf/run.cjs <script.ts> [k6 args]'); process.exit(2); }
+if (!script) {
+  console.error('usage: node perf/run.cjs <script.ts> [k6 args]');
+  process.exit(2);
+}
 
 // k6 may not be on PATH in terminals opened before it was installed.
 const candidates = ['C:/Program Files/k6/k6.exe', '/usr/local/bin/k6', '/opt/homebrew/bin/k6'];
@@ -20,5 +23,8 @@ fs.mkdirSync('perf/results', { recursive: true });
 const summary = ['--summary-export', `perf/results/${name}-summary.json`];
 
 const r = spawnSync(k6, ['run', ...vars, ...summary, ...extra, script], { stdio: 'inherit' });
-if (r.error) { console.error(`Could not start k6 (${r.error.message}). Install: winget install GrafanaLabs.k6`); process.exit(1); }
+if (r.error) {
+  console.error(`Could not start k6 (${r.error.message}). Install: winget install GrafanaLabs.k6`);
+  process.exit(1);
+}
 process.exit(r.status ?? 1);

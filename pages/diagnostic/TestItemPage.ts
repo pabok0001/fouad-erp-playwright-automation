@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import type { TestItemInput } from '../utils/testItemData';
+import type { TestItemInput } from '../../utils/testItemData';
 
 export interface SubmitResult {
   /** App showed "TestItem Saved". */
@@ -52,7 +52,9 @@ export class TestItemPage {
     const before = await this.pager.innerText();
     await this.search.fill(term);
     // Wait for the grid to re-filter (pager text changes) — or settle if it didn't.
-    await expect(this.pager).not.toHaveText(before, { timeout: 5_000 }).catch(() => {});
+    await expect(this.pager)
+      .not.toHaveText(before, { timeout: 5_000 })
+      .catch(() => {});
   }
 
   async openAddNew() {
@@ -69,7 +71,11 @@ export class TestItemPage {
     // Group is the first MudSelect in the dialog (its label has no accessible name).
     await this.dialog.locator('.mud-input-control').first().locator('.mud-input').first().click();
     const escaped = group.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    await this.popover.locator('.mud-list-item').filter({ hasText: new RegExp(`^\\s*${escaped}\\s*$`, 'i') }).first().click();
+    await this.popover
+      .locator('.mud-list-item')
+      .filter({ hasText: new RegExp(`^\\s*${escaped}\\s*$`, 'i') })
+      .first()
+      .click();
     await expect(this.popover).toBeHidden();
   }
 
@@ -77,7 +83,10 @@ export class TestItemPage {
     const input = this.field('Default Vacutainer');
     await input.fill(vacutainer.replace(/\*$/, ''));
     const escaped = vacutainer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const option = this.popover.locator('.mud-list-item').filter({ hasText: new RegExp(`^\\s*${escaped}\\s*$`) }).first();
+    const option = this.popover
+      .locator('.mud-list-item')
+      .filter({ hasText: new RegExp(`^\\s*${escaped}\\s*$`) })
+      .first();
     await expect(option).toBeVisible({ timeout: 10_000 });
     await option.click();
     await expect(input).toHaveValue(vacutainer);
@@ -105,7 +114,12 @@ export class TestItemPage {
     await this.page.waitForTimeout(500); // let any second snackbar render
 
     const messages = (await snackbar.allInnerTexts()).map((m) => m.trim()).filter(Boolean);
-    const validationErrors = (await this.dialog.locator('.mud-input-helper-text.mud-input-error').allInnerTexts().catch(() => []))
+    const validationErrors = (
+      await this.dialog
+        .locator('.mud-input-helper-text.mud-input-error')
+        .allInnerTexts()
+        .catch(() => [])
+    )
       .map((m) => m.trim())
       .filter(Boolean);
     const saved = messages.some((m) => /saved/i.test(m));

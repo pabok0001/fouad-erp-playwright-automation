@@ -11,7 +11,8 @@ export interface Auth {
 
 /** Log in once (call from setup()) so VUs don't hammer the token endpoint. */
 export function login(): Auth {
-  if (!BASE || !__ENV.APP_USER || !__ENV.APP_PASSWORD) fail('API_BASE_URL / APP_USER / APP_PASSWORD not set — run via "npm run perf:*"');
+  if (!BASE || !__ENV.APP_USER || !__ENV.APP_PASSWORD)
+    fail('API_BASE_URL / APP_USER / APP_PASSWORD not set — run via "npm run perf:*"');
   const res = http.post(
     `${BASE}/api/v1/identity/token`,
     JSON.stringify({ email: __ENV.APP_USER, password: __ENV.APP_PASSWORD }),
@@ -19,7 +20,7 @@ export function login(): Auth {
   );
   const ok = check(res, { 'login 200': (r) => r.status === 200 });
   if (!ok) fail(`login failed: HTTP ${res.status} ${res.body}`);
-  return { apiKey: (res.json('data.userApiKey') as string) };
+  return { apiKey: res.json('data.userApiKey') as string };
 }
 
 export function authHeaders(auth: Auth) {

@@ -68,7 +68,9 @@ export class PatientRegistrationPage {
   control(label: string): Locator {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return this.page
-      .locator('.mud-input-control', { has: this.page.locator('label', { hasText: new RegExp(`^${escaped}\\*?$`) }) })
+      .locator('.mud-input-control', {
+        has: this.page.locator('label', { hasText: new RegExp(`^${escaped}\\*?$`) }),
+      })
       .first();
   }
 
@@ -112,10 +114,15 @@ export class PatientRegistrationPage {
     const picker = this.popover.filter({ has: this.page.locator('.mud-picker') }).first();
     // Toolbar year button (shows current year) opens the year list.
     await picker.getByRole('toolbar').getByRole('button').first().click();
-    await picker.locator('.mud-picker-year').filter({ hasText: new RegExp(`^\\s*${year}\\s*$`) }).first().click();
+    await picker
+      .locator('.mud-picker-year')
+      .filter({ hasText: new RegExp(`^\\s*${year}\\s*$`) })
+      .first()
+      .click();
     const monthName = new Date(2000, month - 1, 1).toLocaleString('en-US', { month: 'long' });
     await picker.getByRole('button', { name: monthName, exact: true }).click();
-    await picker.locator('button.mud-picker-calendar-day:not(.mud-hidden):not([disabled])')
+    await picker
+      .locator('button.mud-picker-calendar-day:not(.mud-hidden):not([disabled])')
       .filter({ hasText: new RegExp(`^\\s*${day}\\s*$`) })
       .first()
       .click();

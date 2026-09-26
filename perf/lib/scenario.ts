@@ -28,7 +28,10 @@ export function regRecordJourney(auth: Auth) {
 
   if (uhid) {
     group('get patient by UHID', () => {
-      const res = http.get(path(`RegRecord/RegNo/${uhid}`), { headers, tags: { name: 'RegRecord/RegNo/{id}' } });
+      const res = http.get(path(`RegRecord/RegNo/${uhid}`), {
+        headers,
+        tags: { name: 'RegRecord/RegNo/{id}' },
+      });
       check(res, {
         'get 200': (r) => r.status === 200,
         'get matches uhid': (r) => r.json('data.uhid') === uhid,
