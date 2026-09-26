@@ -7,6 +7,9 @@
   "eslint.useFlatConfig": true,
   "eslint.validate": ["javascript", "typescript"],
   "prettier.requireConfig": true,
+  // No Python in this project — stop the Python extensions activating an env in every new terminal.
+  "python.terminal.activateEnvironment": false,
+  "python-envs.terminal.autoActivationType": "off",
   "files.associations": {
     ".env*": "dotenv"
   },

@@ -37,10 +37,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
     },
     {
-      // Diagnostic module: runs as admin by default; a spec can switch to the
-      // diagnostic user with `test.use({ storageState: DIAG_STORAGE_STATE })`.
+      // Diagnostic module: runs as admin. To use the diagnostic user instead, add
+      // 'setup:diag' to dependencies and `test.use({ storageState: DIAG_STORAGE_STATE })`.
       name: 'diagnostic',
-      dependencies: ['setup', 'setup:diag'],
+      dependencies: ['setup'],
       testMatch: 'modules/diagnostic/tests/**/*.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
