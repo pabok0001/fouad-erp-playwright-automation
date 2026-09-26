@@ -1,0 +1,77 @@
+{
+  "$comment": "Test items for /diagnostic/investigation specs. name = exactly as the Test search lists it (without a trailing *). discountable = TestItem master isDiscountAllow (the billing spec checks this file against the master). Rates as of 2026-09-26.",
+  "area": {
+    "query": "Sadar",
+    "name": "Sadar (Cox's Bazar)"
+  },
+  "doctor": {
+    "query": "RUPASH",
+    "name": "RUPASH PAUL"
+  },
+  "tests": {
+    "CBC": {
+      "query": "CBC",
+      "name": "CBC (Govt. Fixed Rate)",
+      "rate": 400,
+      "discountable": false
+    },
+    "RBS": {
+      "query": "RBS",
+      "name": "Random blood Sugar (RBS)",
+      "rate": 140,
+      "discountable": true
+    },
+    "FBS": {
+      "query": "FBS",
+      "name": "Fasting Blood Sugar(FBS)",
+      "rate": 140,
+      "discountable": true
+    },
+    "TSH": {
+      "query": "TSH",
+      "name": "TSH",
+      "rate": 940,
+      "discountable": true
+    },
+    "Lipid Profile": {
+      "query": "Lipid",
+      "name": "Lipid Profile",
+      "rate": 800,
+      "discountable": false
+    },
+    "Urine C/S": {
+      "query": "Urine C",
+      "name": "Urine C/S",
+      "rate": 700,
+      "discountable": false
+    },
+    "X-Ray": {
+      "query": "X-RAY OF CHEST",
+      "name": "X-RAY OF CHEST AP VIEW",
+      "rate": 600,
+      "discountable": true
+    }
+  },
+  "sets": {
+    "multiTab": [
+      "CBC",
+      "RBS",
+      "Lipid Profile"
+    ],
+    "realistic": [
+      "CBC",
+      "FBS",
+      "TSH",
+      "Lipid Profile",
+      "Urine C/S",
+      "X-Ray"
+    ],
+    "simple": [
+      "FBS"
+    ]
+  },
+  "discount": {
+    "$comment": "General Discount: at most 15% of Discountable(TK). Above that, Disc(Tk) resets to 0 and Disc(%) stops at 15.",
+    "maxPercent": 15
+  }
+}
