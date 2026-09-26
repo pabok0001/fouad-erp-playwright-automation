@@ -10,3 +10,6 @@ blob-report/
 # Test data parsed by utils/markdownData.ts, and the API snapshot
 Markdown/
 api/swagger.json
+
+# Module test data tables, parsed by modules/*/utils
+modules/*/data/

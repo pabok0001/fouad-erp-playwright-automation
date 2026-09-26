@@ -8,3 +8,4 @@ playwright/.cache/
 perf/results/
 .playwright-mcp/
 scripts/audit/output/
+scripts/explore-output/

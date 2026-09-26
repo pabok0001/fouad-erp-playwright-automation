@@ -1,4 +1,4 @@
-import type { PatientData } from '../pages/registration/PatientRegistrationPage';
+import type { PatientData } from '../pages/PatientRegistrationPage';
 
 const pick = <T>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const digits = (n: number) =>

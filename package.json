@@ -10,6 +10,7 @@
     "test:debug": "playwright test --debug",
     "report": "playwright show-report",
     "codegen": "playwright codegen --ignore-https-errors https://202.4.101.118:5555",
+    "explore": "node scripts/explore.cjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p perf",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

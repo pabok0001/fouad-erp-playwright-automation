@@ -1,10 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 import 'dotenv/config';
 
+/** Admin session, created by tests/auth/auth.setup.ts and used by every UI spec by default. */
 export const STORAGE_STATE = '.auth/admin.json';
+/** Diagnostic-module user session (DIAG_USER in .env), created by modules/diagnostic/tests/diag.setup.ts. */
+export const DIAG_STORAGE_STATE = '.auth/diag.json';
+
+const UI_SPECS = ['tests/**/*.spec.ts', 'modules/**/tests/**/*.spec.ts'];
 
 export default defineConfig({
-  testDir: './tests',
+  // Shared specs live in tests/, module specs in modules/<module>/tests/.
+  testDir: '.',
+  testIgnore: ['**/node_modules/**', 'perf/**', 'scripts/**'],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
@@ -23,11 +30,22 @@ export default defineConfig({
     navigationTimeout: 30_000,
   },
   projects: [
-    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    { name: 'setup', testMatch: /tests[\\/]auth[\\/]auth\.setup\.ts/ },
+    { name: 'setup:diag', testMatch: /diag\.setup\.ts/ },
     {
+      // Shared UI specs (auth, smoke) + every module except diagnostic.
       name: 'chromium',
       dependencies: ['setup'],
-      testIgnore: /tests[\\/]api[\\/]/,
+      testMatch: UI_SPECS,
+      testIgnore: [/tests[\\/]api[\\/]/, /modules[\\/]diagnostic[\\/]/],
+      use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
+    },
+    {
+      // Diagnostic module: runs as admin by default; a spec can switch to the
+      // diagnostic user with `test.use({ storageState: DIAG_STORAGE_STATE })`.
+      name: 'diagnostic',
+      dependencies: ['setup', 'setup:diag'],
+      testMatch: 'modules/diagnostic/tests/**/*.spec.ts',
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
     },
     {

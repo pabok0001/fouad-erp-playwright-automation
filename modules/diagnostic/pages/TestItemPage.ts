@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import type { TestItemInput } from '../../utils/testItemData';
+import type { TestItemInput } from '../utils/testItemData';
 
 export interface SubmitResult {
   /** App showed "TestItem Saved". */

@@ -1,7 +1,7 @@
-import { cellValue, parseList, parseTables, readMarkdown } from './markdownData';
+import { cellValue, parseList, parseTables, readMarkdown } from '../../../utils/markdownData';
 
 /** Test data for Diagnostic → Test Item comes from this file — edit it to change the tests. */
-export const TEST_ITEM_DATA_FILE = 'Markdown/test.md';
+export const TEST_ITEM_DATA_FILE = 'modules/diagnostic/data/test-items.md';
 
 export interface TestItemInput {
   name: string;

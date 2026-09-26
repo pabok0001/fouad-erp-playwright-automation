@@ -1,12 +1,12 @@
 /* eslint-disable playwright/no-conditional-in-test, playwright/no-conditional-expect --
    Re-runs branch on what already exists in the master so real records aren't duplicated. */
 import { APIRequestContext } from '@playwright/test';
-import { test, expect } from '../../fixtures/api';
-import { TestItemPage } from '../../pages/diagnostic/TestItemPage';
-import { apiPath } from '../../utils/apiAuth';
-import { loadTestItemData, TEST_ITEM_DATA_FILE } from '../../utils/testItemData';
+import { test, expect } from '../../../fixtures/api';
+import { TestItemPage } from '../pages/TestItemPage';
+import { apiPath } from '../../../utils/apiAuth';
+import { loadTestItemData, TEST_ITEM_DATA_FILE } from '../utils/testItemData';
 
-// Data-driven from Markdown/test.md. Records are created ACTIVE and are NOT deleted
+// Data-driven from data/test-items.md. Records are created ACTIVE and are NOT deleted
 // (agreed with the project owner). Re-runs verify existing records instead of re-creating.
 const { investigations, edgeCases, searchTerms } = loadTestItemData();
 

@@ -16,9 +16,14 @@ Playwright + TypeScript E2E automation for the Fouad Al-Khateeb Hospital HMS
 
 ## Conventions
 
-- Module-wise layout: Page Objects in `pages/<module>/` (login/dashboard in `pages/common/`),
-  specs in `tests/<module>/`, analysis in `docs/modules/<module>.md` (see its `_TEMPLATE.md`).
-  One class per screen.
+- Module-wise layout: everything for a module lives in `modules/<module>/` — `README.md` (analysis,
+  template in `docs/modules/_TEMPLATE.md`), `testcases/` (QA-written, one file per page), `data/`,
+  `pages/`, `tests/`, `utils/`. Shared login/dashboard Page Objects are in `pages/common/`; shared
+  specs (auth, smoke, api) in `tests/`. One class per screen. Only automate pages the user has
+  given test cases for.
+- Playwright projects: `chromium` (shared + all modules except diagnostic), `diagnostic`
+  (depends on `setup` + `setup:diag`; admin session by default, `DIAG_STORAGE_STATE` for the
+  DIAG_USER login), `api`. Module logins come from `moduleUser('<PREFIX>')` in `utils/env.ts`.
 - Prefer `getByRole` / `getByText` locators; module tiles need case-insensitive
   regex names (see `DashboardPage.module`).
 - Credentials come only from `.env` via `utils/env.ts`; never hard-code them.

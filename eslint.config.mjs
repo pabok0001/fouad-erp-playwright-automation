@@ -24,12 +24,18 @@ export default tseslint.config(
     rules: { 'no-empty-pattern': 'off' },
   },
   {
-    files: ['tests/**/*.ts'],
+    files: ['tests/**/*.ts', 'modules/**/tests/**/*.ts'],
     ...playwright.configs['flat/recommended'],
   },
   {
     // Page Objects, fixtures and helpers call async expect() too.
-    files: ['pages/**/*.ts', 'fixtures/**/*.ts', 'utils/**/*.ts'],
+    files: [
+      'pages/**/*.ts',
+      'fixtures/**/*.ts',
+      'utils/**/*.ts',
+      'modules/**/pages/**/*.ts',
+      'modules/**/utils/**/*.ts',
+    ],
     plugins: { playwright },
     rules: { 'playwright/missing-playwright-await': 'error' },
   },

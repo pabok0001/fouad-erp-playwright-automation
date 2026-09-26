@@ -13,3 +13,11 @@ export const env = {
   apiBaseUrl: required('API_BASE_URL'),
   apiVersion: process.env.API_VERSION ?? 'v1',
 };
+
+/**
+ * Login for a module-specific user, read lazily so modules that don't need one
+ * still run: moduleUser('DIAG') → DIAG_USER / DIAG_PASSWORD.
+ */
+export function moduleUser(prefix: string): { user: string; password: string } {
+  return { user: required(`${prefix}_USER`), password: required(`${prefix}_PASSWORD`) };
+}
