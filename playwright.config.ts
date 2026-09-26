@@ -46,7 +46,13 @@ export default defineConfig({
       name: 'diagnostic',
       dependencies: ['setup', 'setup:diag'],
       testMatch: 'modules/diagnostic/tests/**/*.spec.ts',
-      use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: STORAGE_STATE,
+        // Diagnostic screens are wide: below ~1400px the totals panel overlaps the
+        // form and intercepts clicks (investigation entry), so use a desktop-size window.
+        viewport: { width: 1600, height: 1000 },
+      },
     },
     {
       // REST API tests — no browser, no UI login needed.

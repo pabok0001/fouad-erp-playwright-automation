@@ -1,0 +1,118 @@
+import { Page, Locator, expect } from '@playwright/test';
+
+/**
+ * OPD Investigation Entry (/diagnostic/investigation).
+ * Bootstrap-styled Blazor form (not MudBlazor). The Doctor / Test search lists render
+ * as plain text rows under the search box (no ARIA roles), so options are picked by text.
+ * Everything runs over SignalR — there is no HTTP request to intercept on POST.
+ */
+export class InvestigationEntryPage {
+  readonly page: Page;
+  readonly uhid: Locator;
+  readonly searchButton: Locator;
+  readonly fullName: Locator;
+  /** Required — without it POST silently does nothing (no message, no red border). */
+  readonly area: Locator;
+  readonly doctor: Locator;
+  readonly testSearch: Locator;
+  /** Rows in the selected-tests grid. */
+  readonly rows: Locator;
+  readonly subTotal: Locator;
+  readonly netPayable: Locator;
+  readonly cashPayment: Locator;
+  readonly dueAmount: Locator;
+  readonly post: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.uhid = page.getByRole('textbox', { name: 'UHID', exact: true });
+    this.searchButton = page.getByRole('button', { name: 'Search', exact: true });
+    this.fullName = page.getByRole('textbox', { name: 'Name', exact: true });
+    this.area = page.getByRole('searchbox', { name: 'Area Search...' });
+    this.doctor = page.getByRole('searchbox', { name: 'Doctor Search...' });
+    this.testSearch = page.getByRole('searchbox', { name: 'Search Test...' });
+    this.rows = page.locator('table tbody tr.table-row-selectable');
+    this.subTotal = this.amount('Sub Total');
+    this.netPayable = this.amount('Net Payable');
+    this.cashPayment = this.amount('Payment (Cash)');
+    this.dueAmount = this.amount('Due Amount');
+    this.post = page.getByRole('button', { name: 'POST', exact: true });
+  }
+
+  /** The amount input that follows a label in the totals panel ("Sub Total", "Net Payable", …). */
+  private amount(label: string): Locator {
+    return this.page.getByText(label, { exact: true }).locator('xpath=following::input[1]');
+  }
+
+  /** An entry in a search dropdown — same text as a grid cell, so table cells are excluded. */
+  private option(text: string | RegExp): Locator {
+    return this.page.getByText(text).and(this.page.locator(':not(td):not(th)')).first();
+  }
+
+  async goto() {
+    await this.page.goto('/diagnostic/investigation');
+    await expect(this.uhid).toBeVisible();
+    await expect(this.post).toBeVisible();
+    // A full-page loading overlay sits over the form until the initial data arrives.
+    await expect(this.page.locator('.loading-container')).toBeHidden({ timeout: 30_000 });
+  }
+
+  /** Look a patient up by UHID; resolves with the full name the form loaded. */
+  async loadPatient(uhid: number | string): Promise<string> {
+    await this.uhid.fill(String(uhid));
+    await this.searchButton.click();
+    await expect(this.fullName, `patient ${uhid} loaded`).not.toHaveValue('', { timeout: 20_000 });
+    return this.fullName.inputValue();
+  }
+
+  /** Type into "Area" and pick the entry that matches. */
+  async selectArea(query: string, match: RegExp) {
+    await this.area.fill(query);
+    await this.option(match).click();
+    await expect(this.area).toHaveValue(match);
+  }
+
+  /** Type into "Referred by" and pick the doctor whose name matches. */
+  async selectDoctor(query: string, match: RegExp) {
+    await this.doctor.fill(query);
+    await this.option(match).click();
+    await expect(this.doctor).toHaveValue(match);
+  }
+
+  /** Type into "Test" and pick the entry with this label; waits for its grid row. */
+  async addTest(query: string, label: string) {
+    await this.testSearch.fill(query);
+    await this.option(label).click();
+    await expect(this.rows.filter({ hasText: label })).toHaveCount(1);
+  }
+
+  /**
+   * Feedback currently visible (toast, alert, modal, validation text), whitespace-collapsed.
+   * The app's success/error UI isn't known up front, so this casts a wide net for reporting.
+   */
+  async feedback(): Promise<string[]> {
+    const texts = await this.page
+      .locator(
+        '[role="alert"], [role="dialog"], .toast, .swal2-popup, .mud-snackbar, .modal.show, .alert, .validation-message, .text-danger',
+      )
+      .filter({ visible: true })
+      .allInnerTexts();
+    return [...new Set(texts.map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean))];
+  }
+
+  /** Every distinct message that appears within `ms` — toasts vanish quickly, so poll. */
+  async collectFeedback(ms = 15_000): Promise<string[]> {
+    const seen = new Set<string>();
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      for (const t of await this.feedback()) seen.add(t);
+      await this.page.waitForTimeout(500);
+    }
+    return [...seen];
+  }
+
+  /** True once the form has been reset (no selected tests) — what a successful POST does. */
+  async isCleared(): Promise<boolean> {
+    return (await this.rows.count()) === 0;
+  }
+}

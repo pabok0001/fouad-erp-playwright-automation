@@ -128,19 +128,50 @@ list with date filter · `Master` = setup data with Add New / Reload / Search ·
 
 ## 2. Workflows
 
-_Next step._
+Only pages with test cases in `testcases/` are worked out below; the rest wait for their test cases.
+
+| ID       | Workflow                            | Page(s) | Steps (short)                                                                                                                                                                                                              |
+| -------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DIAG-W01 | Create an OPD investigation invoice | P01     | Enter UHID (or Mobile / Admission / Employee No / RxId) → Search → patient fields fill → pick Area, Referred by (doctor), Test(s) → totals & Payment (Cash) auto-fill → POST → invoice print opens in a popup, form resets |
+| DIAG-W02 | Manage test items                   | P27     | Add New → fill → Submit; search the grid (already automated)                                                                                                                                                               |
 
 ## 3. Business rules
 
-_Next step._
+Source: **Observed** = seen in the app on 2026-09-26 · **To confirm** = needs the BA/product owner.
+
+| ID        | Rule                                                                                                                                                 | Workflow | Source                            |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
+| DIAG-BR01 | UHID search fills Full Name, Age, DOB, Gender, Mobile from the registration record                                                                   | W01      | Observed                          |
+| DIAG-BR02 | **Area** and **Referred by** are required. Without Area, POST does nothing — no message, no red border (silent validation) ⚠️ usability finding      | W01      | Observed                          |
+| DIAG-BR03 | Adding a test sets Sub Total / Net Payable and pre-fills Payment (Cash) with the net amount (Due 0)                                                  | W01      | Observed                          |
+| DIAG-BR04 | Successful POST opens the invoice print in a new window and clears the form                                                                          | W01      | Observed                          |
+| DIAG-BR05 | Only one invoice is created when the same entry is posted several times at once (multi-tab); the losing tabs get **no message** ⚠️ usability finding | W01      | Observed (INV-AUTO-001)           |
+| DIAG-BR06 | A repeat POST of the same test for the same patient is silently refused for roughly 10–15 minutes after the last invoice (duplicate-entry window)    | W01      | Observed, exact window to confirm |
 
 ## 4. Test scenarios
 
-_Next step._
+| ID        | Scenario                                                                           | Rule(s) | Type        | Priority | Test case    |
+| --------- | ---------------------------------------------------------------------------------- | ------- | ----------- | -------- | ------------ |
+| DIAG-TS01 | Same investigation entry POSTed from 3 tabs at the same time → exactly one invoice | BR05    | Integration | Critical | INV-AUTO-001 |
+| DIAG-TS02 | POST without Area → no invoice, and the user is told why                           | BR02    | Negative    | P2       | (suggested)  |
+| DIAG-TS03 | Repeat POST of the same test within the duplicate window → refused with a message  | BR06    | Negative    | P2       | (suggested)  |
+| DIAG-TS04 | Losing tabs in TS01 show a "duplicate / already saved" message                     | BR05    | UI          | P2       | (suggested)  |
 
 ## 5. Automation candidates
 
-_Next step._ Already automated: P27 Test Item create / validation / search (`tests/test-item.spec.ts`).
+| Scenario                                   | Decision | Layer    | Creates data?                    | Spec                                | Status                                                                                        |
+| ------------------------------------------ | -------- | -------- | -------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| DIAG-TS01                                  | Automate | UI + API | Yes: 1 patient + 1 invoice / run | `tests/investigation-entry.spec.ts` | Done — passes (2026-09-26)                                                                    |
+| DIAG-TS02                                  | Automate | UI       | No                               | same file                           | Waiting for a test case; currently fails silently, so expected behaviour must be agreed first |
+| DIAG-TS03                                  | Later    | UI + API | Yes                              | —                                   | Needs the window length confirmed                                                             |
+| DIAG-TS04                                  | Manual   | UI       | —                                | —                                   | Currently no message at all — report to dev team                                              |
+| P27 Test Item create / validation / search | Automate | UI + API | Yes (20 investigations, once)    | `tests/test-item.spec.ts`           | Done (earlier)                                                                                |
+
+INV-AUTO-001 design notes: each run registers a fresh patient (registration module) so BR06 cannot interfere; the tabs are
+pages in one browser context (same user session); the POST clicks are fired with `Promise.all`; the result is checked
+with `InvestigationInvoice/GetInvoiceByUHID` (before/after count) plus "form cleared" per tab. `INV_TABS=2` runs the
+2-tab variant. Diagnostic screens need a ≥1400px-wide viewport (set in `playwright.config.ts`) — narrower, the totals
+panel overlaps the form and swallows clicks.
 
 ## Open questions
 
