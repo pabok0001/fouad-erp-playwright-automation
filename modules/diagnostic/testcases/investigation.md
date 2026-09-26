@@ -32,5 +32,5 @@ Each run registers a fresh patient and creates one real invoice per test.
 
 The spec also asserts the messages: the saving tab shows "Successful Save!" and every other tab names the same FKH invoice.
 
-Findings (see README): Area is silently required (DIAG-BR02); test rows show D.Time about 3 hours ahead
-of the real time (DIAG-BR08); the saving tab also shows "Could not found printer." on this machine.
+Findings (see README): Area is silently required (DIAG-BR02); the saving tab also shows
+"Could not found printer." on this machine. D.Date/D.Time in the grid are per-test report delivery times (DIAG-BR08), not a bug.
