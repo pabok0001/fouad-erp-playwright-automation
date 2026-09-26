@@ -79,11 +79,18 @@ export class InvestigationEntryPage {
     await expect(this.doctor).toHaveValue(match);
   }
 
-  /** Type into "Test" and pick the entry with this label; waits for its grid row. */
-  async addTest(query: string, label: string) {
+  /**
+   * Type into "Test" and pick the entry whose name is exactly `name` (so "Lipid Profile"
+   * doesn't pick "LIPID PROFILE (FASTING)"); waits for its grid row. Some names carry a
+   * trailing "*" in the app (e.g. "CBC (Govt. Fixed Rate)*") — pass the name without it.
+   */
+  async addTest(query: string, name: string) {
+    const exact = new RegExp(`^\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*?\\s*$`);
     await this.testSearch.fill(query);
-    await this.option(label).click();
-    await expect(this.rows.filter({ hasText: label })).toHaveCount(1);
+    await this.option(exact).click();
+    await expect(
+      this.rows.filter({ has: this.page.locator('td').filter({ hasText: exact }) }),
+    ).toHaveCount(1);
   }
 
   /**

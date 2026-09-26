@@ -1,3 +1,4 @@
+import type { BrowserContext } from '@playwright/test';
 import { test, expect } from '../../../fixtures/api';
 import { InvestigationEntryPage } from '../pages/InvestigationEntryPage';
 import { invoiceCount, settledInvoiceCount } from '../utils/investigationApi';
@@ -9,79 +10,129 @@ import { randomPatient } from '../../registration/utils/patientData';
 // A fresh patient keeps runs independent: the app silently refuses a repeat POST of the
 // same test for the same patient within a few minutes (see README, DIAG-BR06).
 
-/** Browser tabs that post the same entry at once (INV_TABS=2 to run the 2-tab variant). */
+/** Browser tabs that post the same entry (INV_TABS=2 to run the 2-tab variant). */
 const TABS = Number(process.env.INV_TABS ?? 3);
+/** Gap between tab clicks in the "almost simultaneous" variation (INV_STAGGER_MS). */
+const STAGGER_MS = Number(process.env.INV_STAGGER_MS ?? 300);
 const AREA = { query: 'Sadar', match: /Sadar \(Cox's Bazar\)/ };
 const DOCTOR = { query: 'RUPASH', match: /RUPASH PAUL/ };
-const TEST_ITEM = { query: 'CBC', label: 'CBC (Govt. Fixed Rate)' };
+/** One entry with all three tests (names exactly as the Test search lists them). */
+const TESTS = [
+  { query: 'CBC', name: 'CBC (Govt. Fixed Rate)', rate: 400 },
+  { query: 'RBS', name: 'Random blood Sugar (RBS)', rate: 140 },
+  { query: 'Lipid', name: 'Lipid Profile', rate: 800 },
+];
+const TOTAL = TESTS.reduce((sum, t) => sum + t.rate, 0);
 
-test.describe('Diagnostic · OPD Investigation Entry', () => {
-  test(`INV-AUTO-001 same entry posted from ${TABS} tabs at once creates only one invoice`, async ({
-    context,
-    api,
-  }) => {
-    test.setTimeout(300_000);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    // Fresh patient for this run.
-    const reg = new PatientRegistrationPage(await context.newPage());
-    const patient = randomPatient();
-    await reg.gotoList();
-    await reg.openAddNew();
-    await reg.fillForm(patient);
-    const uhid = await reg.confirm();
-    await reg.page.close();
-    const before = await invoiceCount(api, uhid);
-    test.info().annotations.push({
-      type: 'patient',
-      description: `UHID ${uhid} ${patient.fullName} (invoices before: ${before})`,
-    });
+/** Register a fresh patient through the registration module; returns the UHID. */
+async function registerPatient(context: BrowserContext) {
+  const reg = new PatientRegistrationPage(await context.newPage());
+  const patient = randomPatient();
+  await reg.gotoList();
+  await reg.openAddNew();
+  await reg.fillForm(patient);
+  const uhid = await reg.confirm();
+  await reg.page.close();
+  return { uhid, fullName: patient.fullName };
+}
 
-    // One tab = one page in the same browser context, i.e. the same logged-in user.
-    const tabs: InvestigationEntryPage[] = [];
-    for (let i = 0; i < TABS; i++) {
-      const tab = new InvestigationEntryPage(await context.newPage());
-      await tab.goto();
-      await tab.loadPatient(uhid);
-      await tab.selectArea(AREA.query, AREA.match);
-      await tab.selectDoctor(DOCTOR.query, DOCTOR.match);
-      await tab.addTest(TEST_ITEM.query, TEST_ITEM.label);
-      await expect(tab.netPayable).not.toHaveValue('0');
-      await expect(tab.cashPayment).toHaveValue(await tab.netPayable.inputValue());
-      // A successful POST opens the invoice print in a popup — close it so it can't block the run.
-      tab.page.on('dialog', (d) => d.accept().catch(() => {}));
-      tab.page.on('popup', (p) => p.close().catch(() => {}));
-      tabs.push(tab);
-    }
-
-    // Fire every POST at the same moment, then watch each tab for its response.
-    await Promise.all(tabs.map((tab) => tab.post.click({ noWaitAfter: true })));
-    const feedback = await Promise.all(tabs.map((tab) => tab.collectFeedback()));
-    const cleared: boolean[] = [];
-    for (const [i, tab] of tabs.entries()) {
-      cleared.push(await tab.isCleared());
+/** Open `TABS` tabs (same session) with the identical entry filled in, ready to save. */
+async function openFilledTabs(context: BrowserContext, uhid: string) {
+  const tabs: InvestigationEntryPage[] = [];
+  for (let i = 0; i < TABS; i++) {
+    const tab = new InvestigationEntryPage(await context.newPage());
+    await tab.goto();
+    await tab.loadPatient(uhid);
+    await tab.selectArea(AREA.query, AREA.match);
+    await tab.selectDoctor(DOCTOR.query, DOCTOR.match);
+    for (const t of TESTS) await tab.addTest(t.query, t.name);
+    // The app adds tube charges on its own (Vacutainer Needle / Gray / Red 4ml), so the
+    // net is the tests plus those; cash is pre-filled with the full net (due 0).
+    const net = Number((await tab.netPayable.inputValue()).replace(/,/g, ''));
+    expect(net, 'net payable covers the selected tests').toBeGreaterThanOrEqual(TOTAL);
+    await expect(tab.cashPayment).toHaveValue(String(net));
+    if (i === 0) {
       test.info().annotations.push({
-        type: `tab ${i + 1}`,
-        description: `${cleared[i] ? 'form cleared (saved)' : 'form NOT cleared'}; messages: ${feedback[i].join(' | ') || '(none)'}`,
-      });
-      await test.info().attach(`tab-${i + 1}-after-post.png`, {
-        body: await tab.page.screenshot({ fullPage: true }),
-        contentType: 'image/png',
+        type: 'bill',
+        description: `${await tab.rows.count()} rows, net ${net} Tk (tests ${TOTAL} + auto charges ${net - TOTAL})`,
       });
     }
+    // A successful POST opens the invoice print in a popup — close it so it can't block the run.
+    tab.page.on('dialog', (d) => d.accept().catch(() => {}));
+    tab.page.on('popup', (p) => p.close().catch(() => {}));
+    tabs.push(tab);
+  }
+  return tabs;
+}
 
-    const after = await settledInvoiceCount(api, uhid, before);
-    const summary = tabs
-      .map(
-        (_, i) =>
-          `[${i + 1}] ${cleared[i] ? 'saved' : 'not saved'}: ${feedback[i].join(' | ') || '-'}`,
-      )
-      .join(' ');
-    expect(
-      after - before,
-      `invoices created for UHID ${uhid} by ${TABS} simultaneous POSTs (before ${before}, after ${after}). Tabs: ${summary}`,
-    ).toBe(1);
-    expect(cleared.filter(Boolean), `tabs whose form was cleared (saved): ${summary}`).toHaveLength(
-      1,
-    );
-  });
+const VARIATIONS = [
+  {
+    id: 'INV-AUTO-001',
+    title: `same entry saved from ${TABS} tabs at the same moment`,
+    delayFor: () => 0,
+  },
+  {
+    id: 'INV-AUTO-002',
+    title: `same entry saved from ${TABS} tabs almost simultaneously (${STAGGER_MS} ms apart)`,
+    delayFor: (i: number) => i * STAGGER_MS,
+  },
+];
+
+test.describe('Diagnostic · OPD Investigation Entry · multi-tab duplicate prevention', () => {
+  for (const v of VARIATIONS) {
+    test(`${v.id} ${v.title} creates exactly one invoice`, async ({ context, api }) => {
+      test.setTimeout(360_000);
+      const { uhid, fullName } = await registerPatient(context);
+      const before = await invoiceCount(api, uhid);
+      test
+        .info()
+        .annotations.push(
+          { type: 'patient', description: `UHID ${uhid} ${fullName} (invoices before: ${before})` },
+          { type: 'tests', description: `${TESTS.map((t) => t.name).join(' + ')} = ${TOTAL} Tk` },
+        );
+
+      const tabs = await openFilledTabs(context, uhid);
+
+      // Tab 1 saves at T1; the others at T1 + i × delay, then watch every tab.
+      const t1 = Date.now();
+      const clickedAt: number[] = [];
+      await Promise.all(
+        tabs.map(async (tab, i) => {
+          await sleep(v.delayFor(i));
+          clickedAt[i] = Date.now() - t1;
+          await tab.post.click({ noWaitAfter: true });
+        }),
+      );
+      const feedback = await Promise.all(tabs.map((tab) => tab.collectFeedback()));
+
+      const saved: boolean[] = [];
+      for (const [i, tab] of tabs.entries()) {
+        saved.push(await tab.isCleared());
+        test.info().annotations.push({
+          type: `tab ${i + 1}`,
+          description: `clicked at T1+${clickedAt[i]} ms; ${saved[i] ? 'saved (form cleared)' : 'not saved'}; messages: ${feedback[i].join(' | ') || '(none)'}`,
+        });
+        await test.info().attach(`tab-${i + 1}-after-save.png`, {
+          body: await tab.page.screenshot({ fullPage: true }),
+          contentType: 'image/png',
+        });
+      }
+
+      const created = (await settledInvoiceCount(api, uhid, before)) - before;
+      const duplicates = Math.max(created - 1, 0);
+      const summary = tabs
+        .map((_, i) => `[tab ${i + 1} @+${clickedAt[i]}ms] ${saved[i] ? 'saved' : 'not saved'}`)
+        .join(' ');
+      test.info().annotations.push({
+        type: 'result',
+        description: `Created entries = ${created}, duplicate entries = ${duplicates}`,
+      });
+
+      expect(created, `created entries for UHID ${uhid}. ${summary}`).toBe(1);
+      expect(duplicates, `duplicate entries. ${summary}`).toBe(0);
+      expect(saved.filter(Boolean), `tabs that saved. ${summary}`).toHaveLength(1);
+    });
+  }
 });
