@@ -1,11 +1,11 @@
 import type { BrowserContext } from '@playwright/test';
-import { test, expect } from '../../../fixtures/api';
+import { test, expect } from '../../../../fixtures/api';
 import { InvestigationEntryPage } from '../pages/InvestigationEntryPage';
 import { invoiceCount, settledInvoiceCount } from '../utils/investigationApi';
 import { PatientRegistrationPage } from '../../registration/pages/PatientRegistrationPage';
 import { randomPatient } from '../../registration/utils/patientData';
 
-// Test cases: modules/diagnostic/testcases/investigation.md
+// Test cases: tests/modules/diagnostic/testcases/investigation.md
 // ⚠️ Each run registers a fresh patient and POSTs a real investigation invoice for them.
 // A fresh patient keeps runs independent: the app silently refuses a repeat POST of the
 // same test for the same patient within a few minutes (see README, DIAG-BR06).

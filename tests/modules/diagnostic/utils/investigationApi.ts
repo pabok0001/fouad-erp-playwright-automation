@@ -1,5 +1,5 @@
 import { APIRequestContext, expect } from '@playwright/test';
-import { apiPath } from '../../../utils/apiAuth';
+import { apiPath } from '../../../../utils/apiAuth';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

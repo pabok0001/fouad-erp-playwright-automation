@@ -15,7 +15,7 @@ Tests in one entry: **CBC (Govt. Fixed Rate)** 400 + **Random blood Sugar (RBS)*
 
 ## Automation
 
-Spec: `modules/diagnostic/tests/investigation-entry.spec.ts`
+Spec: `tests/modules/diagnostic/tests/investigation-entry.spec.ts`
 
 ```
 npx playwright test --project=diagnostic --grep INV-AUTO                        # both

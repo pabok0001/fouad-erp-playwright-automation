@@ -16,7 +16,7 @@ Playwright + TypeScript E2E automation for the Fouad Al-Khateeb Hospital HMS
 
 ## Conventions
 
-- Module-wise layout: everything for a module lives in `modules/<module>/` — `README.md` (analysis,
+- Module-wise layout: everything for a module lives in `tests/modules/<module>/` — `README.md` (analysis,
   template in `docs/modules/_TEMPLATE.md`), `testcases/` (QA-written, one file per page), `data/`,
   `pages/`, `tests/`, `utils/`. Shared login/dashboard Page Objects are in `pages/common/`; shared
   specs (auth, smoke, api) in `tests/`. One class per screen. Only automate pages the user has

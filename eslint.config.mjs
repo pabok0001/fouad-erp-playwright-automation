@@ -24,18 +24,22 @@ export default tseslint.config(
     rules: { 'no-empty-pattern': 'off' },
   },
   {
-    files: ['tests/**/*.ts', 'modules/**/tests/**/*.ts'],
+    files: ['tests/**/*.ts'],
     ...playwright.configs['flat/recommended'],
   },
   {
-    // Page Objects, fixtures and helpers call async expect() too.
-    files: [
-      'pages/**/*.ts',
-      'fixtures/**/*.ts',
-      'utils/**/*.ts',
-      'modules/**/pages/**/*.ts',
-      'modules/**/utils/**/*.ts',
-    ],
+    // Module Page Objects / helpers: test-body rules don't apply (they poll and branch on purpose).
+    files: ['tests/modules/**/pages/**/*.ts', 'tests/modules/**/utils/**/*.ts'],
+    rules: {
+      'playwright/no-conditional-expect': 'off',
+      'playwright/no-conditional-in-test': 'off',
+      'playwright/no-wait-for-timeout': 'off',
+    },
+  },
+  {
+    // Page Objects, fixtures and helpers call async expect() too (module pages/utils
+    // under tests/ already get the full Playwright rule set above).
+    files: ['pages/**/*.ts', 'fixtures/**/*.ts', 'utils/**/*.ts'],
     plugins: { playwright },
     rules: { 'playwright/missing-playwright-await': 'error' },
   },

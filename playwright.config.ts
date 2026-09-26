@@ -3,15 +3,12 @@ import 'dotenv/config';
 
 /** Admin session, created by tests/auth/auth.setup.ts and used by every UI spec by default. */
 export const STORAGE_STATE = '.auth/admin.json';
-/** Diagnostic-module user session (DIAG_USER in .env), created by modules/diagnostic/tests/diag.setup.ts. */
+/** Diagnostic-module user session (DIAG_USER in .env), created by tests/modules/diagnostic/tests/diag.setup.ts. */
 export const DIAG_STORAGE_STATE = '.auth/diag.json';
 
-const UI_SPECS = ['tests/**/*.spec.ts', 'modules/**/tests/**/*.spec.ts'];
-
 export default defineConfig({
-  // Shared specs live in tests/, module specs in modules/<module>/tests/.
-  testDir: '.',
-  testIgnore: ['**/node_modules/**', 'perf/**', 'scripts/**'],
+  // Shared specs live in tests/, module specs in tests/modules/<module>/tests/.
+  testDir: './tests',
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
@@ -36,7 +33,6 @@ export default defineConfig({
       // Shared UI specs (auth, smoke) + every module except diagnostic.
       name: 'chromium',
       dependencies: ['setup'],
-      testMatch: UI_SPECS,
       testIgnore: [/tests[\\/]api[\\/]/, /modules[\\/]diagnostic[\\/]/],
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
     },

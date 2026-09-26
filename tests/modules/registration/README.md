@@ -1,6 +1,6 @@
 # Registration
 
-> Status: Draft · Explored: 2026-09-26 · Folder: `modules/registration/` · API spec: `tests/api/reg-record.api.spec.ts` ·
+> Status: Draft · Explored: 2026-09-26 · Folder: `tests/modules/registration/` · API spec: `tests/api/reg-record.api.spec.ts` ·
 
 Hierarchy: **Module → Page → Workflow → Business Rule → Test Scenario → Automation Candidate**.
 

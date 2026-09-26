@@ -1,7 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
-import { LoginPage } from '../../../pages/common/LoginPage';
-import { moduleUser } from '../../../utils/env';
-import { DIAG_STORAGE_STATE } from '../../../playwright.config';
+import { LoginPage } from '../../../../pages/common/LoginPage';
+import { moduleUser } from '../../../../utils/env';
+import { DIAG_STORAGE_STATE } from '../../../../playwright.config';
 
 // Logs in as the Diagnostic user (DIAG_USER / DIAG_PASSWORD) and stores the session.
 setup('authenticate as diagnostic user', async ({ page }) => {

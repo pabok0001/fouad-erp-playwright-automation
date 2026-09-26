@@ -1,6 +1,6 @@
 # Diagnostic
 
-> Status: Draft (Page level done) · Explored: 2026-09-26 · Folder: `modules/diagnostic/` (testcases/, data/, pages/, tests/, utils/)
+> Status: Draft (Page level done) · Explored: 2026-09-26 · Folder: `tests/modules/diagnostic/` (testcases/, data/, pages/, tests/, utils/)
 
 Hierarchy: **Module → Page → Workflow → Business Rule → Test Scenario → Automation Candidate**.
 IDs use the prefix `DIAG`: `P` page, `W` workflow, `BR` business rule, `TS` scenario.
@@ -54,19 +54,19 @@ list with date filter · `Master` = setup data with Add New / Reload / Search ·
 
 ### 1d. Test master data
 
-| ID       | Page (menu name)                       | URL                                   | Kind   | Purpose / main controls                                                                                                                                                                                                                           |
-| -------- | -------------------------------------- | ------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DIAG-P25 | Parent Group                           | `/diagnosis/parent-group`             | Master | Top-level test grouping (Id, Name)                                                                                                                                                                                                                |
-| DIAG-P26 | Test Group                             | `/diagnosis/testgroups`               | Master | Test groups with movement/token settings: NAME, MOVEMENT ROOM No, MOVEMENT ORDER, TOKEN ORDER                                                                                                                                                     |
-| DIAG-P27 | Test Item                              | `/diagnosis/testitems`                | Master | Investigations catalogue (788 rows): TestCode, NAME, Rate, DISPLAY ORDER, GROUP NAME, Process Time, VacutainerName, IsDiscountAllow. Grid has Sort / Filter / Columns. **Already automated** (`pages/TestItemPage.ts`, `tests/test-item.spec.ts`) |
-| DIAG-P28 | Report Parameter                       | `/diagnosis/report-parameter`         | Master | Result parameters per test: Test Name, Report Param, Test Sample, Short, TestMethod, Normal value, Min, Max, DisplayOrder, InputType, CSV Value, Default, group/bold/italic flags, Unit                                                           |
-| DIAG-P29 | Report Parameter Value                 | `/diagnosis/report-parameter-value`   | Master | Pick-list values for parameters: Report Parameter Name, TestName, Value, Is Default; Export                                                                                                                                                       |
-| DIAG-P30 | Test Method                            | `/diagnosis/test-method`              | Master | Method names (Name)                                                                                                                                                                                                                               |
-| DIAG-P31 | Test Samples                           | `/diagnostic/machinegroup-testsample` | Master | Specimen per test: SL No, Test Name, Label Text, Specimen                                                                                                                                                                                         |
-| DIAG-P32 | Sample Status                          | `/diagnosis/sample-status`            | Master | Sample status names (ID, Name); Export                                                                                                                                                                                                            |
-| DIAG-P33 | Sample Carrier                         | `/diagnosis/sample-carrier`           | Master | Staff who carry samples (Staff Name, Name)                                                                                                                                                                                                        |
-| DIAG-P34 | Age Group                              | `/diagnostic/ReportingAgeGroup`       | Master | Age bands for reference ranges: Name, AgeLowLimitInMonths, AgeHigherLimit (≤ / <)                                                                                                                                                                 |
-| DIAG-P35 | OPD Package Item / OPD Package Mapping | `/diagnosis/opd-package-item`         | Master | OPD investigation packages (Name, Action); New / Save. Two menu entries, one page                                                                                                                                                                 |
+| ID       | Page (menu name)                       | URL                                   | Kind   | Purpose / main controls                                                                                                                                                                 |
+| -------- | -------------------------------------- | ------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DIAG-P25 | Parent Group                           | `/diagnosis/parent-group`             | Master | Top-level test grouping (Id, Name)                                                                                                                                                      |
+| DIAG-P26 | Test Group                             | `/diagnosis/testgroups`               | Master | Test groups with movement/token settings: NAME, MOVEMENT ROOM No, MOVEMENT ORDER, TOKEN ORDER                                                                                           |
+| DIAG-P27 | Test Item                              | `/diagnosis/testitems`                | Master | Investigations catalogue (788 rows): TestCode, NAME, Rate, DISPLAY ORDER, GROUP NAME, Process Time, VacutainerName, IsDiscountAllow. Grid has Sort / Filter / Columns.                  |
+| DIAG-P28 | Report Parameter                       | `/diagnosis/report-parameter`         | Master | Result parameters per test: Test Name, Report Param, Test Sample, Short, TestMethod, Normal value, Min, Max, DisplayOrder, InputType, CSV Value, Default, group/bold/italic flags, Unit |
+| DIAG-P29 | Report Parameter Value                 | `/diagnosis/report-parameter-value`   | Master | Pick-list values for parameters: Report Parameter Name, TestName, Value, Is Default; Export                                                                                             |
+| DIAG-P30 | Test Method                            | `/diagnosis/test-method`              | Master | Method names (Name)                                                                                                                                                                     |
+| DIAG-P31 | Test Samples                           | `/diagnostic/machinegroup-testsample` | Master | Specimen per test: SL No, Test Name, Label Text, Specimen                                                                                                                               |
+| DIAG-P32 | Sample Status                          | `/diagnosis/sample-status`            | Master | Sample status names (ID, Name); Export                                                                                                                                                  |
+| DIAG-P33 | Sample Carrier                         | `/diagnosis/sample-carrier`           | Master | Staff who carry samples (Staff Name, Name)                                                                                                                                              |
+| DIAG-P34 | Age Group                              | `/diagnostic/ReportingAgeGroup`       | Master | Age bands for reference ranges: Name, AgeLowLimitInMonths, AgeHigherLimit (≤ / <)                                                                                                       |
+| DIAG-P35 | OPD Package Item / OPD Package Mapping | `/diagnosis/opd-package-item`         | Master | OPD investigation packages (Name, Action); New / Save. Two menu entries, one page                                                                                                       |
 
 ### 1e. Machine setup
 
@@ -133,7 +133,6 @@ Only pages with test cases in `testcases/` are worked out below; the rest wait f
 | ID       | Workflow                            | Page(s) | Steps (short)                                                                                                                                                                                                              |
 | -------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DIAG-W01 | Create an OPD investigation invoice | P01     | Enter UHID (or Mobile / Admission / Employee No / RxId) → Search → patient fields fill → pick Area, Referred by (doctor), Test(s) → totals & Payment (Cash) auto-fill → POST → invoice print opens in a popup, form resets |
-| DIAG-W02 | Manage test items                   | P27     | Add New → fill → Submit; search the grid (already automated)                                                                                                                                                               |
 
 ## 3. Business rules
 
@@ -162,14 +161,13 @@ Source: **Observed** = seen in the app on 2026-09-26 · **To confirm** = needs t
 
 ## 5. Automation candidates
 
-| Scenario                                   | Decision | Layer    | Creates data?                    | Spec                                | Status                                                                                        |
-| ------------------------------------------ | -------- | -------- | -------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
-| DIAG-TS01                                  | Automate | UI + API | Yes: 1 patient + 1 invoice / run | `tests/investigation-entry.spec.ts` | Done — passes (2026-09-26)                                                                    |
-| DIAG-TS05                                  | Automate | UI + API | Yes: 1 patient + 1 invoice / run | same file                           | Done — passes (2026-09-26)                                                                    |
-| DIAG-TS02                                  | Automate | UI       | No                               | same file                           | Waiting for a test case; currently fails silently, so expected behaviour must be agreed first |
-| DIAG-TS03                                  | Later    | UI + API | Yes                              | —                                   | Needs the window length confirmed                                                             |
-| DIAG-TS04                                  | Automate | UI       | —                                | `tests/investigation-entry.spec.ts` | Done — asserted in INV-AUTO-001/002                                                           |
-| P27 Test Item create / validation / search | Automate | UI + API | Yes (20 investigations, once)    | `tests/test-item.spec.ts`           | Done (earlier)                                                                                |
+| Scenario  | Decision | Layer    | Creates data?                    | Spec                                | Status                                                                                        |
+| --------- | -------- | -------- | -------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| DIAG-TS01 | Automate | UI + API | Yes: 1 patient + 1 invoice / run | `tests/investigation-entry.spec.ts` | Done — passes (2026-09-26)                                                                    |
+| DIAG-TS05 | Automate | UI + API | Yes: 1 patient + 1 invoice / run | same file                           | Done — passes (2026-09-26)                                                                    |
+| DIAG-TS02 | Automate | UI       | No                               | same file                           | Waiting for a test case; currently fails silently, so expected behaviour must be agreed first |
+| DIAG-TS03 | Later    | UI + API | Yes                              | —                                   | Needs the window length confirmed                                                             |
+| DIAG-TS04 | Automate | UI       | —                                | `tests/investigation-entry.spec.ts` | Done — asserted in INV-AUTO-001/002                                                           |
 
 INV-AUTO-001/002 design notes: each run registers a fresh patient (registration module) so BR06 cannot interfere; the tabs are
 pages in one browser context (same user session); the POST clicks are fired with `Promise.all` (002 staggers them by `INV_STAGGER_MS`, default 300 ms); the result is checked
