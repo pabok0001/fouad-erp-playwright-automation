@@ -18,6 +18,42 @@ export async function serverClockOffsetMs(api: APIRequestContext): Promise<numbe
   return new Date(header).getTime() + 500 - (before + after) / 2;
 }
 
+/**
+ * Patients the registration automation created ("… At123456") in the last `days` — for
+ * tests that never save, so they needn't register a new patient.
+ */
+export async function existingAutomationPatients(
+  api: APIRequestContext,
+  count: number,
+  days = 30,
+): Promise<{ uhid: string; fullName: string }[]> {
+  const res = await api.post(apiPath('RegRecord/GetByRegDates'), {
+    data: {
+      fromDate: new Date(Date.now() - days * 86_400_000).toISOString(),
+      toDate: new Date().toISOString(),
+    },
+  });
+  await expect(res, 'GetByRegDates').toBeOK();
+  const found = (((await res.json()).data ?? []) as { uhid: number; fullName: string }[])
+    .filter((p) => /At\d{6}$/i.test(p.fullName ?? ''))
+    .slice(0, count)
+    .map((p) => ({ uhid: String(p.uhid), fullName: p.fullName }));
+  expect(found, `${count} automation patients from the last ${days} days`).toHaveLength(count);
+  return found;
+}
+
+/** Number of invoices entered today (all users) — for tests with no patient to count by. */
+export async function invoicesToday(api: APIRequestContext): Promise<number> {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start.getTime() + 86_400_000 - 1);
+  const res = await api.post(apiPath('InvestigationInvoice/GetInvoiceByStartAndEndDate'), {
+    data: { startTime: start.toISOString(), endTime: end.toISOString(), flag: 0, dueFlag: 0 },
+  });
+  await expect(res, 'GetInvoiceByStartAndEndDate').toBeOK();
+  return (((await res.json()).data ?? []) as unknown[]).length;
+}
+
 /** Number of investigation invoices on record for a UHID. */
 export async function invoiceCount(api: APIRequestContext, uhid: number | string): Promise<number> {
   const res = await api.post(apiPath('InvestigationInvoice/GetInvoiceByUHID'), {
@@ -73,12 +109,13 @@ export interface LedgerLine {
 }
 
 /**
- * The patient's only invoice, with full detail. Specs register a fresh patient each run,
- * so "the patient's invoice" is exactly the one the test created. Waits for it to appear.
+ * The patient's newest invoice, with full detail, once the patient has `count` invoices.
+ * Specs register a fresh patient each run, so these are exactly the invoices the test created.
  */
 export async function invoiceForPatient(
   api: APIRequestContext,
   uhid: number | string,
+  count = 1,
 ): Promise<Invoice> {
   let list: { id: string; invoiceNo: number }[] = [];
   const deadline = Date.now() + 30_000;
@@ -88,12 +125,13 @@ export async function invoiceForPatient(
     });
     await expect(res, 'GetInvoiceByUHID').toBeOK();
     list = (await res.json()).data ?? [];
-    if (list.length) break;
+    if (list.length >= count) break;
     await sleep(2_000);
   }
-  expect(list, `invoices for UHID ${uhid}`).toHaveLength(1);
+  expect(list, `invoices for UHID ${uhid}`).toHaveLength(count);
+  const newest = list.reduce((a, b) => (b.invoiceNo > a.invoiceNo ? b : a));
   const res = await api.post(apiPath('InvestigationInvoice/GetInvoiceByInvoiceNo'), {
-    data: { invoiceNo: list[0].invoiceNo, id: list[0].id },
+    data: { invoiceNo: newest.invoiceNo, id: newest.id },
   });
   await expect(res, 'GetInvoiceByInvoiceNo').toBeOK();
   const detail = (await res.json()).data as Omit<Invoice, 'dueAmountByInvoiceNo'>;

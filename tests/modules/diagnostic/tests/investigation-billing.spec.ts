@@ -1,27 +1,25 @@
 import { test, expect } from '../../../../fixtures/api';
-import type { APIRequestContext, TestInfo } from '@playwright/test';
-import type { Totals } from '../pages/InvestigationEntryPage';
-import { InvestigationDashboardPage } from '../pages/InvestigationDashboardPage';
 import {
   discountAllowed,
-  invoiceForPatient,
-  invoiceLedger,
+  existingAutomationPatients,
   testsForPatient,
 } from '../utils/investigationApi';
 import {
   ALL_TESTS,
   MAX_DISCOUNT_PERCENT,
   TEST_SETS,
+  formatTotals,
   openEntry,
   registerPatient,
+  saveAndVerify,
   sumDiscountable,
   sumRates,
   testItems,
 } from '../utils/investigationFlow';
-import type { BrowserContext } from '@playwright/test';
 
 // Tests, discount and Paid/Due on /diagnostic/investigation — test cases: ../testcases/investigation.md
-// ⚠️ Each INV-AUTO test registers a fresh patient and saves one real invoice for them.
+// ⚠️ Tests that save register a fresh patient and create one real invoice each; tests that only
+// check the form (017, 018) reuse an existing automation patient and never save.
 //
 // App rules this suite relies on (observed 2026-09-26, see README DIAG-BR07/BR09–BR12):
 // - the app adds tube charges (Vacutainer …, Urine C/S Pot) as extra rows; they count in Sub Total;
@@ -30,48 +28,8 @@ import type { BrowserContext } from '@playwright/test';
 // - Payment (Cash) is pre-filled with Net Payable; Due = Net Payable − Cash.
 
 const REALISTIC = testItems(TEST_SETS.realistic); // CBC, FBS, TSH, Lipid Profile, Urine C/S, X-Ray
-const TWO_TESTS = testItems(['CBC', 'FBS']);
+const TWO_TESTS = testItems(TEST_SETS.pairA); // CBC, FBS
 const DISCOUNTABLE = sumDiscountable(REALISTIC);
-
-const fmt = (t: Totals) =>
-  `sub ${t.subTotal}, discountable ${t.discountable}, disc ${t.discountPercent}% = ${t.discountTk} Tk, net ${t.netPayable}, cash ${t.cash}, due ${t.due}`;
-
-/** Save, then gather the invoice from the API and the dashboard, recording everything. */
-async function saveAndFetch(
-  context: BrowserContext,
-  api: APIRequestContext,
-  info: TestInfo,
-  entry: Awaited<ReturnType<typeof openEntry>>,
-  uhid: string,
-) {
-  const before = await entry.totals();
-  const result = await entry.save();
-  expect(result.saved, `save messages: ${result.messages.map((m) => m.text).join(' | ')}`).toBe(
-    true,
-  );
-  const invoice = await invoiceForPatient(api, uhid);
-  const ledger = await invoiceLedger(api, invoice.id);
-  const dashboard = new InvestigationDashboardPage(await context.newPage());
-  await dashboard.goto();
-  const row = await dashboard.find(invoice.invoiceNo);
-  info.annotations.push(
-    { type: 'UI totals at save', description: fmt(before) },
-    {
-      type: 'invoice',
-      description: `${invoice.invoicePrefix}${invoice.invoiceNo}, entry ${invoice.entryDate}, due ${invoice.dueAmount} (GetInvoiceByInvoiceNo says ${invoice.dueAmountByInvoiceNo})`,
-    },
-    {
-      type: 'ledger',
-      description: ledger
-        .map((l) => `${l.description}: Dr ${l.debit} / Cr ${l.credit}`)
-        .join(' · '),
-    },
-    { type: 'dashboard', description: `status "${row.status}", ${row.entryDate} ${row.entryTime}` },
-  );
-  const debit = ledger.reduce((s, l) => s + l.debit, 0);
-  const credit = ledger.reduce((s, l) => s + l.credit, 0);
-  return { totals: before, invoice, ledger, row, debit, credit };
-}
 
 test.describe('Diagnostic · OPD Investigation Entry · tests, discount, Paid/Due', () => {
   test.describe.configure({ timeout: 300_000 });
@@ -103,7 +61,7 @@ test.describe('Diagnostic · OPD Investigation Entry · tests, discount, Paid/Du
     );
     expect(totals.subTotal).toBeGreaterThanOrEqual(sumRates(REALISTIC));
 
-    await saveAndFetch(context, api, test.info(), entry, uhid);
+    await saveAndVerify(context, api, test.info(), entry, uhid);
     const billed = await testsForPatient(api, uhid);
     test.info().annotations.push({ type: 'billed tests', description: billed.join(', ') });
     for (const t of REALISTIC) expect.soft(billed, `${t.name} on the invoice`).toContain(t.name);
@@ -113,23 +71,20 @@ test.describe('Diagnostic · OPD Investigation Entry · tests, discount, Paid/Du
     const { uhid } = await registerPatient(context);
     const entry = await openEntry(context, uhid, REALISTIC);
     const pct = 10;
-    const discountable = DISCOUNTABLE;
     await entry.setDiscountPercent(pct);
 
     const t = await entry.totals();
-    expect(t.discountable, 'Discountable = non-govt test rates').toBe(discountable);
-    expect(t.discountTk, `${pct}% of ${discountable}`).toBe(Math.round((discountable * pct) / 100));
+    expect(t.discountable, 'Discountable = tests with isDiscountAllow').toBe(DISCOUNTABLE);
+    expect(t.discountTk, `${pct}% of ${DISCOUNTABLE}`).toBe(Math.round((DISCOUNTABLE * pct) / 100));
     expect(t.netPayable, 'Net = Sub Total − Discount').toBe(t.subTotal - t.discountTk);
     expect(t.cash, 'cash pre-filled with net').toBe(t.netPayable);
 
-    const saved = await saveAndFetch(context, api, test.info(), entry, uhid);
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
     expect(saved.invoice.dueAmount, 'due on the invoice').toBe(0);
     expect(saved.debit - saved.credit, 'ledger balance (debits − credits) = due').toBe(0);
     const discountLine = saved.ledger.find((l) => /disc/i.test(l.description));
     expect.soft(discountLine, 'a discount line in the ledger').toBeTruthy();
-    expect
-      .soft(discountLine && Math.max(discountLine.debit, discountLine.credit))
-      .toBe(t.discountTk);
+    expect.soft(discountLine?.credit, 'discount credited in the ledger').toBe(t.discountTk);
   });
 
   test('INV-AUTO-006 full payment → Status Paid, Due 0', async ({ context, api }) => {
@@ -139,7 +94,7 @@ test.describe('Diagnostic · OPD Investigation Entry · tests, discount, Paid/Du
     expect(t.cash, 'cash = net (full payment)').toBe(t.netPayable);
     expect(t.due).toBe(0);
 
-    const saved = await saveAndFetch(context, api, test.info(), entry, uhid);
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
     expect(saved.invoice.dueAmount, 'due on the invoice').toBe(0);
     expect(saved.row.status, 'dashboard status').toBe('Paid');
   });
@@ -154,10 +109,133 @@ test.describe('Diagnostic · OPD Investigation Entry · tests, discount, Paid/Du
     expect(t.cash, 'cash entered').toBe(paid);
     expect(t.due, 'UI Due = Net − Paid').toBe(net - paid);
 
-    const saved = await saveAndFetch(context, api, test.info(), entry, uhid);
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
     expect(saved.invoice.dueAmount, 'due on the invoice').toBe(net - paid);
     expect(saved.debit - saved.credit, 'ledger balance = due').toBe(net - paid);
     expect(saved.row.status, 'dashboard status').toMatch(/due/i);
+  });
+
+  test('INV-AUTO-008 discount + full payment → Paid; Total/Discount/Paid/Due correct', async ({
+    context,
+    api,
+  }) => {
+    const { uhid } = await registerPatient(context);
+    const entry = await openEntry(context, uhid, REALISTIC);
+    await entry.setDiscountPercent(10);
+    const t = await entry.totals();
+    expect(t.netPayable, 'Net = Total − Discount').toBe(t.subTotal - t.discountTk);
+    expect(t.cash, 'full discounted amount paid').toBe(t.netPayable);
+    expect(t.due).toBe(0);
+
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
+    const credit = (re: RegExp) =>
+      saved.ledger.filter((l) => re.test(l.description)).reduce((s, l) => s + l.credit, 0);
+    expect(saved.debit, 'ledger total (Service Cost)').toBe(t.subTotal);
+    expect(credit(/disc/i), 'ledger discount').toBe(t.discountTk);
+    expect(credit(/payment/i), 'ledger paid').toBe(t.netPayable);
+    expect(saved.invoice.dueAmount, 'invoice due').toBe(0);
+    expect(saved.row.status, 'dashboard status').toBe('Paid');
+  });
+
+  test('INV-AUTO-009 discount + partial payment → Due from the discounted total', async ({
+    context,
+    api,
+  }) => {
+    const { uhid } = await registerPatient(context);
+    const entry = await openEntry(context, uhid, REALISTIC);
+    await entry.setDiscountPercent(10);
+    const net = (await entry.totals()).netPayable;
+    const paid = net - 500;
+    await entry.setCash(paid);
+    const t = await entry.totals();
+    expect(t.due, 'Due = discounted Net − Paid').toBe(t.netPayable - paid);
+
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
+    expect(saved.invoice.dueAmount, 'invoice due').toBe(t.due);
+    expect(saved.debit - saved.credit, 'ledger balance = due').toBe(t.due);
+    expect(saved.row.status, 'dashboard status').toMatch(/due/i);
+  });
+
+  test('INV-AUTO-016 zero payment → saved as Due for the full amount, never Paid', async ({
+    context,
+    api,
+  }) => {
+    const { uhid } = await registerPatient(context);
+    const entry = await openEntry(context, uhid, TWO_TESTS);
+    await entry.setCash(0);
+    const t = await entry.totals();
+    expect(t.cash, 'cash').toBe(0);
+    expect(t.due, 'UI due = whole net').toBe(t.netPayable);
+
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
+    expect(saved.invoice.dueAmount, 'invoice due = net').toBe(t.netPayable);
+    expect(saved.row.status, 'dashboard status is not Paid').not.toBe('Paid');
+    expect(saved.row.status, 'dashboard status').toMatch(/due/i);
+  });
+
+  test('INV-AUTO-017 payment greater than payable is not accepted (form only, no save)', async ({
+    context,
+    api,
+  }) => {
+    const [patient] = await existingAutomationPatients(api, 1);
+    const entry = await openEntry(context, patient.uhid, TWO_TESTS);
+    const net = (await entry.totals()).netPayable;
+    await entry.watchMessages();
+    await entry.setCash(net + 500);
+    const t = await entry.totals();
+    const messages = await entry.messages();
+    test
+      .info()
+      .annotations.push(
+        { type: 'typed', description: `cash ${net + 500} against net ${net}` },
+        { type: 'form after', description: formatTotals(t) },
+        { type: 'messages', description: messages.map((m) => m.text).join(' | ') || '(none)' },
+      );
+    expect(t.cash, 'cash never exceeds net payable').toBeLessThanOrEqual(net);
+    expect(t.due, 'due is never negative').toBeGreaterThanOrEqual(0);
+  });
+
+  test('INV-AUTO-018 discount greater than total is not accepted (form only, no save)', async ({
+    context,
+    api,
+  }) => {
+    const [patient] = await existingAutomationPatients(api, 1);
+    const entry = await openEntry(context, patient.uhid, REALISTIC);
+    const before = await entry.totals();
+    await entry.watchMessages();
+    await entry.setDiscountTk(before.subTotal + 100);
+    const t = await entry.totals();
+    const messages = await entry.messages();
+    test.info().annotations.push(
+      {
+        type: 'typed',
+        description: `discount ${before.subTotal + 100} Tk against total ${before.subTotal}`,
+      },
+      { type: 'form after', description: formatTotals(t) },
+      { type: 'messages', description: messages.map((m) => m.text).join(' | ') || '(none)' },
+    );
+    expect(t.discountTk, 'discount stays within the cap').toBeLessThanOrEqual(
+      (t.discountable * MAX_DISCOUNT_PERCENT) / 100,
+    );
+    expect(t.netPayable, 'net payable never negative').toBeGreaterThan(0);
+    expect(t.netPayable, 'net = total − accepted discount').toBe(t.subTotal - t.discountTk);
+  });
+
+  test('INV-AUTO-019 tests with different prices: each price and the grand total are correct', async ({
+    context,
+    api,
+  }) => {
+    const items = testItems(TEST_SETS.priced); // CBC, FBS, TSH, X-Ray
+    const { uhid } = await registerPatient(context);
+    const entry = await openEntry(context, uhid, items);
+    const rows = await entry.gridRows();
+    for (const t of items)
+      expect.soft(rows.find((r) => r.name === t.name)?.rate, `${t.name} price`).toBe(t.rate);
+    const t = await entry.totals();
+    expect(t.subTotal, 'grand total = sum of all rows').toBe(rows.reduce((s, r) => s + r.total, 0));
+
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
+    expect(saved.debit, 'ledger Service Cost = grand total').toBe(t.subTotal);
   });
 
   test('INV-AUTO-030 invoice calculation: Total − Discount = Net; Net − Paid = Due', async ({
@@ -180,7 +258,7 @@ test.describe('Diagnostic · OPD Investigation Entry · tests, discount, Paid/Du
     const t = await entry.totals();
     expect(t.due, 'Due = Net − Paid').toBe(t.netPayable - paid);
 
-    const saved = await saveAndFetch(context, api, test.info(), entry, uhid);
+    const saved = await saveAndVerify(context, api, test.info(), entry, uhid);
     expect(saved.invoice.dueAmount, 'invoice due').toBe(t.due);
     expect(saved.debit - saved.credit, 'ledger balance = due').toBe(t.due);
     const payment = saved.ledger.filter((l) => /payment/i.test(l.description));

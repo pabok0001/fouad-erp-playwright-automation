@@ -195,6 +195,25 @@ export class InvestigationEntryPage {
     await expect(this.testSearch, 'test search cleared after the pick').toHaveValue('');
   }
 
+  /** Remove a test with its row's trash button; waits for the row to go. */
+  async removeTest(name: string) {
+    const exact = new RegExp(`^\\s*${escapeRe(name)}\\*?\\s*$`);
+    const row = this.rows.filter({ has: this.page.locator('td').filter({ hasText: exact }) });
+    await row.locator('button').last().click();
+    await expect(row, `${name} removed from the grid`).toHaveCount(0);
+  }
+
+  /** Inputs the app has marked invalid (Bootstrap `.is-invalid`), by placeholder/id. */
+  async invalidFields(): Promise<string[]> {
+    return this.page
+      .locator('input.is-invalid, select.is-invalid, textarea.is-invalid')
+      .evaluateAll((els) =>
+        els.map(
+          (e) => (e as HTMLInputElement).placeholder || e.id || e.getAttribute('name') || '?',
+        ),
+      );
+  }
+
   /**
    * Start recording the app's snackbar messages. Call before POST: snackbars
    * (`div.snackbar.snackbar-success|info|danger`, bottom of the page) vanish after a few

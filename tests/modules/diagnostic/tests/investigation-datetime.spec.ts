@@ -31,7 +31,7 @@ const ampm = (d: Date) =>
 const sameMinute = (a: Date, b: Date) =>
   Math.floor(a.getTime() / 60_000) === Math.floor(b.getTime() / 60_000);
 
-test('INV-AUTO-010 / INV-AUTO-011 entry and invoice date/time = save time, not page-load time', async ({
+test('INV-AUTO-010 / INV-AUTO-011 / INV-AUTO-012 entry, invoice and UI date/time = save time, not page-load time', async ({
   context,
   api,
 }) => {
@@ -97,7 +97,8 @@ test('INV-AUTO-010 / INV-AUTO-011 entry and invoice date/time = save time, not p
     `entryDate is ~${WAIT_MIN} min after the page load (${hms(loadedAtServer)}), not the load time`,
   ).toBeGreaterThan((WAIT_MIN - 1) * 60_000);
 
-  // INV-AUTO-011: every date/time on the invoice record agrees with that entry time.
+  // INV-AUTO-011 / 012: every date/time on the invoice record, and the UI (dashboard)
+  // Entry Date/Time, agree with that entry time.
   expect(invoice.entryTime, 'invoice entryTime matches entryDate').toBe(ampm(recorded));
   const ledgerDrift = ledger.map((l) =>
     Math.abs(parseLocal(l.tranDate).getTime() - recorded.getTime()),

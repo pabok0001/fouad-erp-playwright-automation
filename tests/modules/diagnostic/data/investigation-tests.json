@@ -8,6 +8,10 @@
     "query": "RUPASH",
     "name": "RUPASH PAUL"
   },
+  "otherDoctor": {
+    "query": "HASMAT",
+    "name": "HASMAT ALI"
+  },
   "tests": {
     "CBC": {
       "query": "CBC",
@@ -68,6 +72,20 @@
     ],
     "simple": [
       "FBS"
+    ],
+    "priced": [
+      "CBC",
+      "FBS",
+      "TSH",
+      "X-Ray"
+    ],
+    "pairA": [
+      "CBC",
+      "FBS"
+    ],
+    "pairB": [
+      "TSH",
+      "Lipid Profile"
     ]
   },
   "discount": {

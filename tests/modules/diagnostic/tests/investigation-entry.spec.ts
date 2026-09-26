@@ -5,6 +5,7 @@ import {
   TEST_SETS,
   openEntry,
   registerPatient,
+  saveAndVerify,
   sumRates,
   testItems,
 } from '../utils/investigationFlow';
@@ -142,5 +143,93 @@ test.describe('Diagnostic · OPD Investigation Entry · duplicate protection', (
     );
     expect(created, 'invoices created by a double-click').toBe(1);
     expect.soft(result.saved, 'a "Successful Save!" message was shown').toBe(true);
+  });
+
+  test('INV-AUTO-024 clicking POST again while the save is slow creates only one invoice', async ({
+    context,
+    api,
+  }) => {
+    const { uhid, fullName } = await registerPatient(context);
+    const entry = await openEntry(context, uhid, testItems(TEST_SETS.simple));
+    // Slow the connection so the second click lands before the first save answers.
+    const cdp = await context.newCDPSession(entry.page);
+    await cdp.send('Network.enable');
+    await cdp.send('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: 1_500,
+      downloadThroughput: 50_000,
+      uploadThroughput: 50_000,
+    });
+    await entry.watchMessages();
+    await entry.post.click({ noWaitAfter: true });
+    const disabledAfterFirst = await entry.post.isDisabled();
+    await sleep(700);
+    await entry.post.click({ noWaitAfter: true, timeout: 5_000 }).catch(() => {});
+    const messages = await entry.collectFeedback(30_000);
+    await cdp.send('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: 0,
+      downloadThroughput: -1,
+      uploadThroughput: -1,
+    });
+    const created = await settledInvoiceCount(api, uhid, 0);
+    test.info().annotations.push(
+      { type: 'patient', description: `UHID ${uhid} ${fullName}` },
+      { type: 'POST disabled after first click', description: String(disabledAfterFirst) },
+      {
+        type: 'messages',
+        description: messages.map((m) => `[${m.kind}] ${m.text}`).join(' | ') || '(none)',
+      },
+      { type: 'result', description: `Created entries = ${created}` },
+    );
+    expect(created, 'invoices after two POSTs during a slow save').toBe(1);
+  });
+
+  test('INV-AUTO-025 browser Back/Forward after save creates no duplicate', async ({
+    context,
+    api,
+  }) => {
+    const { uhid } = await registerPatient(context);
+    const entry = await openEntry(context, uhid, testItems(TEST_SETS.simple));
+    await saveAndVerify(context, api, test.info(), entry, uhid);
+    await entry.page.goBack().catch(() => {});
+    await sleep(3_000);
+    await entry.page.goForward().catch(() => {});
+    await sleep(5_000);
+    test
+      .info()
+      .annotations.push({ type: 'page after Back/Forward', description: entry.page.url() });
+    expect(await settledInvoiceCount(api, uhid, 1, { timeoutMs: 5_000, settleMs: 5_000 })).toBe(1);
+  });
+
+  test('INV-AUTO-026 same patient + same test again after a successful entry is blocked', async ({
+    context,
+    api,
+  }) => {
+    const items = testItems(TEST_SETS.simple);
+    const { uhid } = await registerPatient(context);
+    const first = await saveAndVerify(
+      context,
+      api,
+      test.info(),
+      await openEntry(context, uhid, items),
+      uhid,
+      { label: 'first' },
+    );
+    const again = await openEntry(context, uhid, items);
+    const result = await again.save();
+    const text = result.messages.map((m) => m.text).join(' | ');
+    const count = await settledInvoiceCount(api, uhid, 1, { timeoutMs: 10_000, settleMs: 5_000 });
+    test
+      .info()
+      .annotations.push(
+        { type: 'second save', description: text || '(no message)' },
+        { type: 'result', description: `invoices for the patient = ${count}` },
+      );
+    expect(result.saved, 'second save refused').toBe(false);
+    expect(count, 'still one invoice').toBe(1);
+    expect(text, 'duplicate message names the first invoice').toMatch(
+      new RegExp(`Duplicate entry.*FKH${first.invoice.invoiceNo}.*not saved again`, 'i'),
+    );
   });
 });
