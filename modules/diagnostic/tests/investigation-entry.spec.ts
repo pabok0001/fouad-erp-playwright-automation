@@ -7,7 +7,7 @@ import { randomPatient } from '../../registration/utils/patientData';
 // Test cases: modules/diagnostic/testcases/investigation.md
 // ⚠️ Each run registers a fresh patient and POSTs a real investigation invoice for them.
 // A fresh patient keeps runs independent: the app silently refuses a repeat POST of the
-// same test for the same patient within roughly 10–15 minutes (see README, DIAG-BR05).
+// same test for the same patient within a few minutes (see README, DIAG-BR06).
 
 /** Browser tabs that post the same entry at once (INV_TABS=2 to run the 2-tab variant). */
 const TABS = Number(process.env.INV_TABS ?? 3);

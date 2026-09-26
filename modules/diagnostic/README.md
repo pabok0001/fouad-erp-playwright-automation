@@ -139,14 +139,14 @@ Only pages with test cases in `testcases/` are worked out below; the rest wait f
 
 Source: **Observed** = seen in the app on 2026-09-26 · **To confirm** = needs the BA/product owner.
 
-| ID        | Rule                                                                                                                                                 | Workflow | Source                            |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
-| DIAG-BR01 | UHID search fills Full Name, Age, DOB, Gender, Mobile from the registration record                                                                   | W01      | Observed                          |
-| DIAG-BR02 | **Area** and **Referred by** are required. Without Area, POST does nothing — no message, no red border (silent validation) ⚠️ usability finding      | W01      | Observed                          |
-| DIAG-BR03 | Adding a test sets Sub Total / Net Payable and pre-fills Payment (Cash) with the net amount (Due 0)                                                  | W01      | Observed                          |
-| DIAG-BR04 | Successful POST opens the invoice print in a new window and clears the form                                                                          | W01      | Observed                          |
-| DIAG-BR05 | Only one invoice is created when the same entry is posted several times at once (multi-tab); the losing tabs get **no message** ⚠️ usability finding | W01      | Observed (INV-AUTO-001)           |
-| DIAG-BR06 | A repeat POST of the same test for the same patient is silently refused for roughly 10–15 minutes after the last invoice (duplicate-entry window)    | W01      | Observed, exact window to confirm |
+| ID        | Rule                                                                                                                                                                  | Workflow | Source                            |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
+| DIAG-BR01 | UHID search fills Full Name, Age, DOB, Gender, Mobile from the registration record                                                                                    | W01      | Observed                          |
+| DIAG-BR02 | **Area** and **Referred by** are required. Without Area, POST does nothing — no message, no red border (silent validation) ⚠️ usability finding                       | W01      | Observed                          |
+| DIAG-BR03 | Adding a test sets Sub Total / Net Payable and pre-fills Payment (Cash) with the net amount (Due 0)                                                                   | W01      | Observed                          |
+| DIAG-BR04 | Successful POST opens the invoice print in a new window and clears the form                                                                                           | W01      | Observed                          |
+| DIAG-BR05 | Only one invoice is created when the same entry is posted several times at once (multi-tab); the losing tabs get **no message** ⚠️ usability finding                  | W01      | Observed (INV-AUTO-001)           |
+| DIAG-BR06 | A repeat POST of the same test for the same patient is silently refused shortly after the last invoice (refused at +40 s and +2 min, accepted at +14 min; 2026-09-26) | W01      | Observed, exact window to confirm |
 
 ## 4. Test scenarios
 
