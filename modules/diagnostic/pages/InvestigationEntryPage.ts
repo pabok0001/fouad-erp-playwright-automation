@@ -1,5 +1,11 @@
 import { Page, Locator, expect } from '@playwright/test';
 
+/** A snackbar the app showed: `kind` is its colour class (success / info / danger / warning). */
+export interface SnackbarMessage {
+  kind: string;
+  text: string;
+}
+
 /**
  * OPD Investigation Entry (/diagnostic/investigation).
  * Bootstrap-styled Blazor form (not MudBlazor). The Doctor / Test search lists render
@@ -94,28 +100,52 @@ export class InvestigationEntryPage {
   }
 
   /**
-   * Feedback currently visible (toast, alert, modal, validation text), whitespace-collapsed.
-   * The app's success/error UI isn't known up front, so this casts a wide net for reporting.
+   * Start recording the app's snackbar messages. Call before POST: snackbars
+   * (`div.snackbar.snackbar-success|info|danger`, bottom of the page) vanish after a few
+   * seconds, so a DOM observer catches them where polling could miss one.
    */
-  async feedback(): Promise<string[]> {
-    const texts = await this.page
-      .locator(
-        '[role="alert"], [role="dialog"], .toast, .swal2-popup, .mud-snackbar, .modal.show, .alert, .validation-message, .text-danger',
-      )
-      .filter({ visible: true })
-      .allInnerTexts();
-    return [...new Set(texts.map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean))];
+  async watchMessages() {
+    await this.page.evaluate(() => {
+      const w = window as unknown as { __snackbars?: SnackbarMessage[] };
+      w.__snackbars = [];
+      const record = (el: HTMLElement) => {
+        const text = (el.innerText ?? '').replace(/\s+/g, ' ').trim();
+        const kind = /snackbar-(success|info|danger|warning)/.exec(el.className)?.[1] ?? 'other';
+        if (text && !w.__snackbars!.some((s) => s.text === text))
+          w.__snackbars!.push({ kind, text });
+      };
+      new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          const nodes = m.type === 'attributes' ? [m.target] : [...m.addedNodes];
+          for (const n of nodes) {
+            if (!(n instanceof HTMLElement)) continue;
+            if (n.classList.contains('snackbar')) record(n);
+            n.querySelectorAll?.<HTMLElement>('.snackbar').forEach(record);
+          }
+        }
+      }).observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    });
   }
 
-  /** Every distinct message that appears within `ms` — toasts vanish quickly, so poll. */
-  async collectFeedback(ms = 15_000): Promise<string[]> {
-    const seen = new Set<string>();
+  /** Snackbar messages recorded since `watchMessages()`. */
+  async messages(): Promise<SnackbarMessage[]> {
+    return this.page.evaluate(
+      () => (window as unknown as { __snackbars?: SnackbarMessage[] }).__snackbars ?? [],
+    );
+  }
+
+  /** Wait up to `ms` for the first snackbar, then return every one seen. */
+  async collectFeedback(ms = 15_000): Promise<SnackbarMessage[]> {
     const deadline = Date.now() + ms;
-    while (Date.now() < deadline) {
-      for (const t of await this.feedback()) seen.add(t);
-      await this.page.waitForTimeout(500);
-    }
-    return [...seen];
+    while (Date.now() < deadline && (await this.messages()).length === 0)
+      await this.page.waitForTimeout(250);
+    await this.page.waitForTimeout(1_000);
+    return this.messages();
   }
 
   /** True once the form has been reset (no selected tests) — what a successful POST does. */

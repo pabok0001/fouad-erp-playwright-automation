@@ -25,10 +25,12 @@ INV_STAGGER_MS=1000 npx playwright test --project=diagnostic --grep INV-AUTO-002
 
 Each run registers a fresh patient and creates one real invoice per test.
 
-| TC ID        | Status (2026-09-26) | Result                                                                                      |
-| ------------ | ------------------- | ------------------------------------------------------------------------------------------- |
-| INV-AUTO-001 | Pass                | Created 1, duplicates 0. Tab 1 saved; tabs 2 and 3 not saved, **no message shown**          |
-| INV-AUTO-002 | Pass                | Created 1, duplicates 0. Tab 1 (T1) saved; tabs at +302 / +616 ms not saved, **no message** |
+| TC ID        | Status (2026-09-26) | Result                                                                                                                                                                                       |
+| ------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| INV-AUTO-001 | Pass                | Created 1, duplicates 0. Saving tab: "Successful Save!"; other tabs: info snackbar "This invoice was already saved as FKH… It was not saved again."                                          |
+| INV-AUTO-002 | Pass                | Created 1, duplicates 0. Tab 1 (T1) saved; +300 ms tab: info "already saved as FKH…"; +600 ms tab: danger "Duplicate entry … already invoiced as FKH… Same entry is allowed after <+10 min>" |
 
-Findings (see README): losing tabs get no message (DIAG-BR05); Area is silently required (DIAG-BR02);
-test rows show D.Time about 3 hours ahead of the real time (DIAG-BR08).
+The spec also asserts the messages: the saving tab shows "Successful Save!" and every other tab names the same FKH invoice.
+
+Findings (see README): Area is silently required (DIAG-BR02); test rows show D.Time about 3 hours ahead
+of the real time (DIAG-BR08); the saving tab also shows "Could not found printer." on this machine.

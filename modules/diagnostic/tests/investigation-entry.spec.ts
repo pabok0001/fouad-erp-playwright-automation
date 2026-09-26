@@ -94,6 +94,7 @@ test.describe('Diagnostic · OPD Investigation Entry · multi-tab duplicate prev
         );
 
       const tabs = await openFilledTabs(context, uhid);
+      for (const tab of tabs) await tab.watchMessages();
 
       // Tab 1 saves at T1; the others at T1 + i × delay, then watch every tab.
       const t1 = Date.now();
@@ -112,7 +113,7 @@ test.describe('Diagnostic · OPD Investigation Entry · multi-tab duplicate prev
         saved.push(await tab.isCleared());
         test.info().annotations.push({
           type: `tab ${i + 1}`,
-          description: `clicked at T1+${clickedAt[i]} ms; ${saved[i] ? 'saved (form cleared)' : 'not saved'}; messages: ${feedback[i].join(' | ') || '(none)'}`,
+          description: `clicked at T1+${clickedAt[i]} ms; ${saved[i] ? 'saved (form cleared)' : 'not saved'}; ${feedback[i].map((m) => `[${m.kind}] ${m.text}`).join(' | ') || '(no message)'}`,
         });
         await test.info().attach(`tab-${i + 1}-after-save.png`, {
           body: await tab.page.screenshot({ fullPage: true }),
@@ -133,6 +134,30 @@ test.describe('Diagnostic · OPD Investigation Entry · multi-tab duplicate prev
       expect(created, `created entries for UHID ${uhid}. ${summary}`).toBe(1);
       expect(duplicates, `duplicate entries. ${summary}`).toBe(0);
       expect(saved.filter(Boolean), `tabs that saved. ${summary}`).toHaveLength(1);
+
+      // The saving tab says so; every other tab says it was a duplicate of that invoice.
+      // Two wordings exist: a POST racing the save in flight gets an info snackbar
+      // ("This invoice was already saved as FKH… It was not saved again."), a POST after
+      // it gets a danger one ("Duplicate entry: … already invoiced as FKH… not saved again").
+      const texts = feedback.map((msgs) => msgs.map((m) => m.text).join(' | '));
+      const winner = saved.indexOf(true);
+      expect.soft(texts[winner], `tab ${winner + 1} (saved) message`).toMatch(/Successful Save/i);
+      const losers = tabs.map((_, i) => i).filter((i) => i !== winner);
+      const invoiceNos = losers.map(
+        (i) => /already (?:saved|invoiced) as (FKH\d+)/i.exec(texts[i])?.[1],
+      );
+      losers.forEach((i, k) => {
+        expect
+          .soft(texts[i], `tab ${i + 1} (not saved) shows the duplicate message`)
+          .toMatch(/already (?:saved|invoiced) as FKH\d+.*not saved again/i);
+        expect
+          .soft(invoiceNos[k], `tab ${i + 1} names the invoice that was saved`)
+          .toBe(invoiceNos[0]);
+      });
+      test.info().annotations.push({
+        type: 'invoice',
+        description: `${invoiceNos[0] ?? '(not named)'} saved by tab ${winner + 1}`,
+      });
     });
   }
 });
